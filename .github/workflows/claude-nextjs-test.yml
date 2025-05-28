@@ -1,0 +1,274 @@
+name: Claude Next.js Auto Test & Fix
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  auto-test:
+    if: |
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type checking
+        id: typecheck
+        run: |
+          echo "🔬 TypeScript型チェック実行中..."
+          if npm run type-check 2>&1 | tee typecheck-output.log; then
+            echo "✅ 型チェック成功"
+            echo "typecheck_status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "❌ 型チェック失敗"
+            echo "typecheck_status=failed" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Run ESLint
+        id: lint
+        run: |
+          echo "🔍 ESLint実行中..."
+          if npm run lint 2>&1 | tee lint-output.log; then
+            echo "✅ リンティング成功"
+            echo "lint_status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "❌ リンティング失敗"
+            echo "lint_status=failed" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Run tests
+        id: test
+        run: |
+          echo "🧪 テスト実行中..."
+          if npm test -- --passWithNoTests --watchAll=false 2>&1 | tee test-output.log; then
+            echo "✅ テスト成功"
+            echo "test_status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "❌ テスト失敗"
+            echo "test_status=failed" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Build application
+        id: build
+        run: |
+          echo "🏗️ Next.jsビルド実行中..."
+          if npm run build 2>&1 | tee build-output.log; then
+            echo "✅ ビルド成功"
+            echo "build_status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "❌ ビルド失敗"
+            echo "build_status=failed" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Collect detailed error information
+        if: |
+          steps.typecheck.outputs.typecheck_status == 'failed' ||
+          steps.lint.outputs.lint_status == 'failed' ||
+          steps.test.outputs.test_status == 'failed' ||
+          steps.build.outputs.build_status == 'failed'
+        run: |
+          echo "## 🔍 詳細エラー情報" > error-details.md
+          echo "" >> error-details.md
+          
+          if [ "${{ steps.typecheck.outputs.typecheck_status }}" = "failed" ]; then
+            echo "### ❌ TypeScript型チェックエラー" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            cat typecheck-output.log 2>/dev/null || echo "型チェックエラーログの取得に失敗" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            echo "" >> error-details.md
+          fi
+          
+          if [ "${{ steps.lint.outputs.lint_status }}" = "failed" ]; then
+            echo "### ❌ ESLintエラー" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            cat lint-output.log 2>/dev/null || echo "リントエラーログの取得に失敗" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            echo "" >> error-details.md
+          fi
+          
+          if [ "${{ steps.test.outputs.test_status }}" = "failed" ]; then
+            echo "### ❌ テストエラー" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            cat test-output.log 2>/dev/null || echo "テストエラーログの取得に失敗" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            echo "" >> error-details.md
+          fi
+          
+          if [ "${{ steps.build.outputs.build_status }}" = "failed" ]; then
+            echo "### ❌ Next.jsビルドエラー" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            cat build-output.log 2>/dev/null || echo "ビルドエラーログの取得に失敗" >> error-details.md
+            echo "\`\`\`" >> error-details.md
+            echo "" >> error-details.md
+          fi
+          
+          echo "## 📋 修正が必要な項目" >> error-details.md
+          [ "${{ steps.typecheck.outputs.typecheck_status }}" = "failed" ] && echo "- [ ] TypeScript型エラーの修正" >> error-details.md
+          [ "${{ steps.lint.outputs.lint_status }}" = "failed" ] && echo "- [ ] ESLintエラーの修正" >> error-details.md
+          [ "${{ steps.test.outputs.test_status }}" = "failed" ] && echo "- [ ] テスト失敗の修正" >> error-details.md
+          [ "${{ steps.build.outputs.build_status }}" = "failed" ] && echo "- [ ] ビルドエラーの修正" >> error-details.md
+
+      - name: Comment success results
+        if: |
+          github.event_name == 'pull_request' &&
+          steps.typecheck.outputs.typecheck_status == 'passed' &&
+          steps.lint.outputs.lint_status == 'passed' &&
+          steps.test.outputs.test_status == 'passed' &&
+          steps.build.outputs.build_status == 'passed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = `
+            # 🤖 Claude Next.js自動テスト結果
+            
+            ## 📋 結果サマリー
+            - **TypeScript型チェック**: ✅ 成功
+            - **ESLint**: ✅ 成功
+            - **テスト**: ✅ 成功  
+            - **Next.jsビルド**: ✅ 成功
+            
+            ## 🎯 総合判定
+            ✅ **全テスト通過 - レビュー可能**
+            
+            すべての自動チェックが正常に完了しました。このPRは人間によるレビューの準備ができています。
+            
+            ---
+            💡 [詳細ログを確認](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+      - name: Auto-request fix from Claude on failure
+        if: |
+          github.event_name == 'pull_request' && (
+            steps.typecheck.outputs.typecheck_status == 'failed' ||
+            steps.lint.outputs.lint_status == 'failed' ||
+            steps.test.outputs.test_status == 'failed' ||
+            steps.build.outputs.build_status == 'failed'
+          )
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let errorDetails = '';
+            
+            try {
+              errorDetails = fs.readFileSync('error-details.md', 'utf8');
+            } catch (e) {
+              errorDetails = 'エラー詳細の取得に失敗しました';
+            }
+            
+            const typecheckStatus = '${{ steps.typecheck.outputs.typecheck_status }}';
+            const lintStatus = '${{ steps.lint.outputs.lint_status }}';
+            const testStatus = '${{ steps.test.outputs.test_status }}';
+            const buildStatus = '${{ steps.build.outputs.build_status }}';
+            
+            const failureReport = `
+            # 🚨 Next.js自動テスト失敗 - 修正が必要です
+            
+            @claude Next.js自動テストで問題が検出されました。以下のエラーを確認して修正してください：
+            
+            ## 📊 テスト結果
+            - **TypeScript型チェック**: ${typecheckStatus === 'passed' ? '✅ 成功' : '❌ 失敗'}
+            - **ESLint**: ${lintStatus === 'passed' ? '✅ 成功' : '❌ 失敗'}
+            - **テスト**: ${testStatus === 'passed' ? '✅ 成功' : '❌ 失敗'}
+            - **Next.jsビルド**: ${buildStatus === 'passed' ? '✅ 成功' : '❌ 失敗'}
+            
+            ${errorDetails}
+            
+            ## 🔧 対応をお願いします
+            上記のエラーを解析して、適切な修正を行ってください。修正後は自動的に再テストが実行されます。
+            
+            ## 📝 Next.js/React修正のポイント
+            - TypeScriptエラー: 型定義の修正、interfaceの追加
+            - ESLintエラー: コーディング規約の修正、未使用変数の削除
+            - テストエラー: テストケースまたは実装の修正
+            - ビルドエラー: 依存関係、設定ファイル、構文エラーの確認
+            
+            ---
+            💡 [詳細ログを確認](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            `;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: failureReport
+            });
+            
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['🚨 nextjs-test-failed', '🔧 needs-claude-fix']
+              });
+            } catch (e) {
+              console.log('ラベル追加に失敗');
+            }
+
+      - name: Set success labels
+        if: |
+          github.event_name == 'pull_request' &&
+          steps.typecheck.outputs.typecheck_status == 'passed' &&
+          steps.lint.outputs.lint_status == 'passed' &&
+          steps.test.outputs.test_status == 'passed' &&
+          steps.build.outputs.build_status == 'passed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['✅ nextjs-tests-passed', '👀 ready-for-review']
+              });
+              
+              const labelsToRemove = ['🚨 nextjs-test-failed', '🔧 needs-claude-fix'];
+              for (const label of labelsToRemove) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    name: label
+                  });
+                } catch (e) {
+                  // ラベルが存在しない場合は無視
+                }
+              }
+            } catch (e) {
+              console.log('ラベル操作に失敗');
+            }
