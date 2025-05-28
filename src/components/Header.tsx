@@ -30,6 +30,13 @@ export default function Header() {
               ホーム
             </Link>
             <Link 
+              href="/workout" 
+              className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+              aria-label="トレーニング"
+            >
+              トレーニング
+            </Link>
+            <Link 
               href="/features" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               aria-label="機能"
@@ -44,7 +51,7 @@ export default function Header() {
               ログイン
             </Link>
             <Link 
-              href="/signup" 
+              href="/workout" 
               className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
               aria-label="今すぐ始める"
             >
@@ -97,6 +104,14 @@ export default function Header() {
                 ホーム
               </Link>
               <Link 
+                href="/workout" 
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+                aria-label="トレーニング"
+              >
+                トレーニング
+              </Link>
+              <Link 
                 href="/features" 
                 className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
                 onClick={() => setIsMenuOpen(false)}
@@ -113,7 +128,7 @@ export default function Header() {
                 ログイン
               </Link>
               <Link 
-                href="/signup" 
+                href="/workout" 
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 text-center"
                 onClick={() => setIsMenuOpen(false)}
                 aria-label="今すぐ始める"
