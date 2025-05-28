@@ -26,7 +26,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                   <Link
-                    href="/signup"
+                    href="/workout"
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
                     aria-label="今すぐ始める"
                   >
@@ -144,7 +144,7 @@ export default function Home() {
               無料でアカウントを作成して、あなた専用のAIトレーナーと一緒にフィットネス目標を達成しましょう。
             </p>
             <Link
-              href="/signup"
+              href="/workout"
               className="bg-white text-blue-600 px-10 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl inline-block"
               aria-label="無料で始める"
             >
