@@ -1,4 +1,4 @@
-import { AIWorkoutResponse, WorkoutRequest } from '@/types/workout';
+import { AIWorkoutResponse, WorkoutRequest, AIGenerationError } from '@/types/workout';
 
 // Rate limiting and caching
 const API_CACHE = new Map<string, { data: AIWorkoutResponse; timestamp: number }>();
@@ -243,17 +243,5 @@ export class AIClient {
   }
 }
 
-// Error class for AI generation
-export class AIGenerationError extends Error {
-  public readonly type: AIGenerationError['type'];
-  public readonly retryAfter?: number;
-
-  constructor(type: AIGenerationError['type'], message: string, retryAfter?: number) {
-    super(message);
-    this.name = 'AIGenerationError';
-    this.type = type;
-    this.retryAfter = retryAfter;
-  }
-}
 
 export const aiClient = AIClient.getInstance();
