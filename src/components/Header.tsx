@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
 
   return (
     <header className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50">
@@ -36,27 +38,70 @@ export default function Header() {
             >
               トレーニング
             </Link>
-            <Link 
-              href="/settings" 
-              className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              aria-label="設定"
-            >
-              設定
-            </Link>
-            <Link 
-              href="/login" 
-              className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              aria-label="ログイン"
-            >
-              ログイン
-            </Link>
-            <Link 
-              href="/workout" 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
-              aria-label="今すぐ始める"
-            >
-              今すぐ始める
-            </Link>
+            
+            {session ? (
+              <>
+                <Link 
+                  href="/dashboard" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  aria-label="ダッシュボード"
+                >
+                  ダッシュボード
+                </Link>
+                <Link 
+                  href="/history" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  aria-label="履歴"
+                >
+                  履歴
+                </Link>
+                <Link 
+                  href="/favorites" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  aria-label="お気に入り"
+                >
+                  お気に入り
+                </Link>
+                <Link 
+                  href="/profile" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  aria-label="プロフィール"
+                >
+                  プロフィール
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="text-gray-700 hover:text-red-600 font-medium transition-colors"
+                  aria-label="ログアウト"
+                >
+                  ログアウト
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/settings" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  aria-label="設定"
+                >
+                  設定
+                </Link>
+                <Link 
+                  href="/login" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  aria-label="ログイン"
+                >
+                  ログイン
+                </Link>
+                <Link 
+                  href="/register" 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                  aria-label="新規登録"
+                >
+                  新規登録
+                </Link>
+              </>
+            )}
           </nav>
 
           {/* Mobile menu button */}
@@ -111,30 +156,80 @@ export default function Header() {
               >
                 トレーニング
               </Link>
-              <Link 
-                href="/settings" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-                aria-label="設定"
-              >
-                設定
-              </Link>
-              <Link 
-                href="/login" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-                aria-label="ログイン"
-              >
-                ログイン
-              </Link>
-              <Link 
-                href="/workout" 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 text-center"
-                onClick={() => setIsMenuOpen(false)}
-                aria-label="今すぐ始める"
-              >
-                今すぐ始める
-              </Link>
+              
+              {session ? (
+                <>
+                  <Link 
+                    href="/dashboard" 
+                    className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="ダッシュボード"
+                  >
+                    ダッシュボード
+                  </Link>
+                  <Link 
+                    href="/history" 
+                    className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="履歴"
+                  >
+                    履歴
+                  </Link>
+                  <Link 
+                    href="/favorites" 
+                    className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="お気に入り"
+                  >
+                    お気に入り
+                  </Link>
+                  <Link 
+                    href="/profile" 
+                    className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="プロフィール"
+                  >
+                    プロフィール
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setIsMenuOpen(false);
+                    }}
+                    className="text-left text-gray-700 hover:text-red-600 font-medium transition-colors"
+                    aria-label="ログアウト"
+                  >
+                    ログアウト
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    href="/settings" 
+                    className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="設定"
+                  >
+                    設定
+                  </Link>
+                  <Link 
+                    href="/login" 
+                    className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="ログイン"
+                  >
+                    ログイン
+                  </Link>
+                  <Link 
+                    href="/register" 
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="新規登録"
+                  >
+                    新規登録
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         )}
