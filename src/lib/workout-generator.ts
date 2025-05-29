@@ -1,4 +1,4 @@
-import { aiClient, AIGenerationError } from './ai-client';
+import { aiClient } from './ai-client';
 import { generateWorkoutMenu } from './mockData';
 import { 
   WorkoutRequest, 
@@ -6,7 +6,8 @@ import {
   WorkoutMenu, 
   Exercise, 
   UserPreferences,
-  AIExercise 
+  AIExercise,
+  AIGenerationError 
 } from '@/types/workout';
 
 const STORAGE_KEY = 'aiWorkoutPro_userPreferences';

@@ -83,6 +83,7 @@ export interface AIWorkoutResponse {
 }
 
 export interface AIGenerationError {
+  name: string;
   type: 'rate_limit' | 'api_error' | 'network_error' | 'validation_error' | 'unknown';
   message: string;
   retryAfter?: number;
