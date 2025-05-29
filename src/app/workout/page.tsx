@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { BodyPart, WorkoutGeneration } from '@/types/workout';
-import { simulateAIGeneration } from '@/lib/mockData';
+import { workoutGenerator } from '@/lib/workout-generator';
 
 const bodyParts: BodyPart[] = [
   {
@@ -60,7 +60,18 @@ export default function WorkoutPage() {
     progress: 0,
     message: ''
   });
+  const [hasUserSettings, setHasUserSettings] = useState(false);
   const router = useRouter();
+
+  // Check if user has settings configured
+  useEffect(() => {
+    try {
+      const settings = localStorage.getItem('aiWorkoutPro_userPreferences');
+      setHasUserSettings(!!settings);
+    } catch (error) {
+      console.error('Failed to check user settings:', error);
+    }
+  }, []);
 
   const toggleBodyPart = (partId: string) => {
     if (generation.status === 'loading') return; // Prevent selection during generation
@@ -85,13 +96,16 @@ export default function WorkoutPage() {
         message: 'AIが最適なメニューを分析中...'
       });
 
-      const menu = await simulateAIGeneration(selectedParts, (progress, message) => {
-        setGeneration(prev => ({
-          ...prev,
-          progress,
-          message
-        }));
-      });
+      const menu = await workoutGenerator.generateWorkoutWithStreaming(
+        selectedParts, 
+        (progress, message) => {
+          setGeneration(prev => ({
+            ...prev,
+            progress,
+            message
+          }));
+        }
+      );
 
       setGeneration({
         status: 'success',
@@ -137,6 +151,42 @@ export default function WorkoutPage() {
               複数の部位を同時に選択することができます。
             </p>
           </div>
+
+          {/* User Settings Notification */}
+          {!hasUserSettings && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    さらにパーソナライズしませんか？
+                  </h3>
+                  <p className="text-blue-800 mb-4">
+                    ユーザー設定でフィットネスレベル、利用可能時間、使用器具を設定すると、より効果的なメニューを生成できます。
+                  </p>
+                  <Link
+                    href="/settings"
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    設定ページに移動 →
+                  </Link>
+                </div>
+                <button
+                  onClick={() => setHasUserSettings(true)}
+                  className="flex-shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
+                  aria-label="通知を閉じる"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Body Parts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">

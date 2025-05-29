@@ -1,9 +1,9 @@
 {
-  "name": "claude-nextjs-template",
+  "name": "ai-workout-pro-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -21,7 +21,7 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
+    "@testing-library/react": "^16.3.0", 
     "@types/node": "^20.17.52",
     "@types/react": "^19",
     "@types/react-dom": "^19",

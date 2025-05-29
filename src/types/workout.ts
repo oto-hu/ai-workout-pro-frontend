@@ -45,5 +45,45 @@ export interface UserPreferences {
   fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
   preferredDuration: number; // minutes
   availableEquipment: string[];
+  goals: string[];
   injuries?: string[];
+  limitations?: string[];
+}
+
+export interface WorkoutRequest {
+  targetMuscles: string[];
+  fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
+  duration: number; // minutes
+  equipment: string[];
+  goals: string[];
+  limitations?: string[];
+  userPreferences?: UserPreferences;
+}
+
+export interface AIExercise {
+  name: string;
+  sets: number;
+  reps: string;
+  restTime: string;
+  targetMuscles: string[];
+  difficulty: string;
+  instructions: string[];
+  tips: string;
+  safetyNotes: string;
+}
+
+export interface AIWorkoutResponse {
+  workoutTitle: string;
+  estimatedTime: string;
+  difficulty: string;
+  exercises: AIExercise[];
+  cooldown: string[];
+  totalCalories: string;
+  equipment: string;
+}
+
+export interface AIGenerationError {
+  type: 'rate_limit' | 'api_error' | 'network_error' | 'validation_error' | 'unknown';
+  message: string;
+  retryAfter?: number;
 }
