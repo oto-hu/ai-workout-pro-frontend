@@ -2,15 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-
-interface BodyPart {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-}
+import { BodyPart, WorkoutGeneration } from '@/types/workout';
+import { simulateAIGeneration } from '@/lib/mockData';
 
 const bodyParts: BodyPart[] = [
   {
@@ -59,8 +55,16 @@ const bodyParts: BodyPart[] = [
 
 export default function WorkoutPage() {
   const [selectedParts, setSelectedParts] = useState<string[]>([]);
+  const [generation, setGeneration] = useState<WorkoutGeneration>({
+    status: 'idle',
+    progress: 0,
+    message: ''
+  });
+  const router = useRouter();
 
   const toggleBodyPart = (partId: string) => {
+    if (generation.status === 'loading') return; // Prevent selection during generation
+    
     setSelectedParts(prev => 
       prev.includes(partId) 
         ? prev.filter(id => id !== partId)
@@ -68,13 +72,50 @@ export default function WorkoutPage() {
     );
   };
 
-  const handleGenerateWorkout = () => {
+  const handleGenerateWorkout = async () => {
     if (selectedParts.length === 0) {
       alert('少なくとも1つの部位を選択してください。');
       return;
     }
-    console.log('Selected body parts:', selectedParts);
-    alert(`選択された部位: ${selectedParts.map(id => bodyParts.find(bp => bp.id === id)?.name).join(', ')}\n\nAI生成機能は次のフェーズで実装予定です。`);
+
+    try {
+      setGeneration({
+        status: 'loading',
+        progress: 0,
+        message: 'AIが最適なメニューを分析中...'
+      });
+
+      const menu = await simulateAIGeneration(selectedParts, (progress, message) => {
+        setGeneration(prev => ({
+          ...prev,
+          progress,
+          message
+        }));
+      });
+
+      setGeneration({
+        status: 'success',
+        progress: 100,
+        message: 'メニュー生成完了！',
+        menu
+      });
+
+      // Store the generated menu in sessionStorage for the result page
+      sessionStorage.setItem('generatedWorkout', JSON.stringify(menu));
+      
+      // Navigate to result page after a short delay
+      setTimeout(() => {
+        router.push('/workout/result');
+      }, 1000);
+
+    } catch (error) {
+      setGeneration({
+        status: 'error',
+        progress: 0,
+        message: 'メニュー生成に失敗しました。もう一度お試しください。',
+        error: error instanceof Error ? error.message : '不明なエラー'
+      });
+    }
   };
 
   return (
@@ -176,21 +217,94 @@ export default function WorkoutPage() {
             </div>
           )}
 
+          {/* AI Generation Progress */}
+          {generation.status === 'loading' && (
+            <div className="bg-white rounded-2xl p-8 shadow-lg mb-8">
+              <div className="text-center">
+                <div className="mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mx-auto flex items-center justify-center mb-4">
+                    <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    AI生成中
+                  </h3>
+                  <p className="text-gray-600">
+                    {generation.message}
+                  </p>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div 
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${generation.progress}%` }}
+                  ></div>
+                </div>
+                
+                <p className="text-sm text-gray-500">
+                  {generation.progress}% 完了
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {generation.status === 'success' && (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full mx-auto flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-green-800 font-medium">
+                  {generation.message}
+                </p>
+                <p className="text-green-600 text-sm mt-1">
+                  結果ページに移動しています...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {generation.status === 'error' && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-red-100 rounded-full mx-auto flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-red-800 font-medium">
+                  {generation.message}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="text-center space-y-4">
             <button
               onClick={handleGenerateWorkout}
-              disabled={selectedParts.length === 0}
+              disabled={selectedParts.length === 0 || generation.status === 'loading'}
               className={`
                 px-10 py-4 rounded-full font-semibold text-lg transition-all transform hover:scale-105 shadow-lg hover:shadow-xl
-                ${selectedParts.length > 0
+                ${selectedParts.length > 0 && generation.status !== 'loading'
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }
               `}
               aria-label="選択した部位でメニューを生成する"
             >
-              メニュー生成 ({selectedParts.length}部位)
+              {generation.status === 'loading' ? (
+                <span className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  生成中...
+                </span>
+              ) : (
+                `メニュー生成 (${selectedParts.length}部位)`
+              )}
             </button>
             
             <div className="flex justify-center gap-4">
