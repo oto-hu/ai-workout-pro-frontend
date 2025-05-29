@@ -1,4 +1,4 @@
-import { AIWorkoutResponse, WorkoutRequest } from '@/types/workout';
+import { AIWorkoutResponse, WorkoutRequest, AIGenerationError } from '@/types/workout';
 
 // Rate limiting and caching
 const API_CACHE = new Map<string, { data: AIWorkoutResponse; timestamp: number }>();
@@ -204,7 +204,6 @@ export class AIClient {
   private handleAPIError(error: any): AIGenerationError {
     if (error?.status === 429) {
       return {
-        name: 'AIGenerationError',
         type: 'rate_limit',
         message: 'APIリクエスト制限に達しました。しばらくお待ちください。',
         retryAfter: error?.headers?.['retry-after'] ? parseInt(error.headers['retry-after']) * 1000 : 60000
@@ -213,7 +212,6 @@ export class AIClient {
 
     if (error?.status >= 500) {
       return {
-        name: 'AIGenerationError',
         type: 'api_error',
         message: 'AI サービスで一時的な問題が発生しています。'
       };
@@ -221,7 +219,6 @@ export class AIClient {
 
     if (error?.code === 'ENOTFOUND' || error?.code === 'ECONNREFUSED') {
       return {
-        name: 'AIGenerationError',
         type: 'network_error',
         message: 'ネットワーク接続に問題があります。'
       };
@@ -229,31 +226,17 @@ export class AIClient {
 
     if (error?.message?.includes('JSON') || error?.message?.includes('field')) {
       return {
-        name: 'AIGenerationError',
         type: 'validation_error',
         message: 'AI レスポンスの形式に問題があります。'
       };
     }
 
     return {
-      name: 'AIGenerationError',
       type: 'unknown',
       message: error?.message || '予期しないエラーが発生しました。'
     };
   }
 }
 
-// Error class for AI generation
-export class AIGenerationError extends Error {
-  public readonly type: AIGenerationError['type'];
-  public readonly retryAfter?: number;
-
-  constructor(type: AIGenerationError['type'], message: string, retryAfter?: number) {
-    super(message);
-    this.name = 'AIGenerationError';
-    this.type = type;
-    this.retryAfter = retryAfter;
-  }
-}
 
 export const aiClient = AIClient.getInstance();
