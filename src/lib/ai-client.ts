@@ -1,4 +1,4 @@
-import { AIWorkoutResponse, AIGenerationError, WorkoutRequest } from '@/types/workout';
+import { AIWorkoutResponse, WorkoutRequest } from '@/types/workout';
 
 // Rate limiting and caching
 const API_CACHE = new Map<string, { data: AIWorkoutResponse; timestamp: number }>();
