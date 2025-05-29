@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,33 +16,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Workout Pro - AIパーソナルトレーナーと始める理想のボディメイク",
-  description: "AIがあなた専用のトレーニングメニューを動画で生成。自宅で本格的なパーソナルジム体験を提供するAI Workout Pro。",
-  keywords: "AI, トレーニング, パーソナルジム, ワークアウト, フィットネス, 動画, 自宅",
-  authors: [{ name: "AI Workout Pro Team" }],
-  openGraph: {
-    title: "AI Workout Pro - AIパーソナルトレーナー",
-    description: "AIがあなた専用のトレーニングメニューを動画で生成",
-    type: "website",
-    locale: "ja_JP",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "AI Workout Pro - AIパーソナルトレーナー",
-    description: "AIがあなた専用のトレーニングメニューを動画で生成",
-  },
+  title: "AI Workout Pro",
+  description: "AI-powered personalized workout generation",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="ja">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
           <div className="min-h-screen flex flex-col">
             <Header />
