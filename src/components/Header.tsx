@@ -37,11 +37,11 @@ export default function Header() {
               トレーニング
             </Link>
             <Link 
-              href="/features" 
+              href="/settings" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              aria-label="機能"
+              aria-label="設定"
             >
-              機能
+              設定
             </Link>
             <Link 
               href="/login" 
@@ -112,12 +112,12 @@ export default function Header() {
                 トレーニング
               </Link>
               <Link 
-                href="/features" 
+                href="/settings" 
                 className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
                 onClick={() => setIsMenuOpen(false)}
-                aria-label="機能"
+                aria-label="設定"
               >
-                機能
+                設定
               </Link>
               <Link 
                 href="/login" 

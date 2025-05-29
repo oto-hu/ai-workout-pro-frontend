@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { WorkoutMenu, Exercise } from '@/types/workout';
-import { generateWorkoutMenu } from '@/lib/mockData';
+import { workoutGenerator } from '@/lib/workout-generator';
 
 export default function WorkoutResultPage() {
   const [workoutMenu, setWorkoutMenu] = useState<WorkoutMenu | null>(null);
@@ -36,14 +36,24 @@ export default function WorkoutResultPage() {
     
     setRegenerating(true);
     
-    // Simulate regeneration with a delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const newMenu = generateWorkoutMenu(workoutMenu.targetBodyParts);
-    setWorkoutMenu(newMenu);
-    sessionStorage.setItem('generatedWorkout', JSON.stringify(newMenu));
-    
-    setRegenerating(false);
+    try {
+      const newMenu = await workoutGenerator.regenerateWorkout(
+        workoutMenu.targetBodyParts,
+        {}, // No specific modifications for now
+        (progress, message) => {
+          // Progress updates could be shown in a toast or modal
+          console.log(`Regeneration: ${progress}% - ${message}`);
+        }
+      );
+      
+      setWorkoutMenu(newMenu);
+      sessionStorage.setItem('generatedWorkout', JSON.stringify(newMenu));
+    } catch (error) {
+      console.error('Regeneration failed:', error);
+      // Fallback to original mock generation if needed
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   const toggleFavorite = () => {
