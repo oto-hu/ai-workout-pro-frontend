@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { BodyPart, WorkoutGeneration } from '@/types/workout';
 import { workoutGenerator } from '@/lib/workout-generator';
 
@@ -133,8 +131,7 @@ export default function WorkoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <Header />
+    <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50">
       
       <main className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-6xl">
@@ -378,8 +375,6 @@ export default function WorkoutPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
