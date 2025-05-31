@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase'
 import { WorkoutSession, FavoriteWorkout, UserProfile } from '@/types/auth'
 import { format, parseISO, subDays, startOfWeek, endOfWeek } from 'date-fns'
@@ -32,7 +32,7 @@ ChartJS.register(
 )
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [sessions, setSessions] = useState<WorkoutSession[]>([])
   const [favorites, setFavorites] = useState<FavoriteWorkout[]>([])
@@ -40,20 +40,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!authLoading && !user) {
       router.push('/login')
       return
     }
 
-    if (session?.user?.id) {
+    if (user) {
       loadDashboardData()
     }
-  }, [session, status, router])
+  }, [user, authLoading, router])
 
   const loadDashboardData = async () => {
     try {
       const supabase = createClient()
-      const userId = session?.user?.id
+      const userId = user?.id
 
       // Load all data in parallel
       const [sessionsResult, favoritesResult, profileResult] = await Promise.all([
@@ -182,7 +182,7 @@ export default function DashboardPage() {
     },
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -199,7 +199,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            おかえりなさい、{session?.user?.name || 'ユーザー'}さん！
+            おかえりなさい、{user?.name || 'ユーザー'}さん！
           </h1>
           <p className="text-gray-600">今日も頑張りましょう</p>
         </div>

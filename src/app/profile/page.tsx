@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { UserProfile } from '@/types/auth'
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -16,15 +16,15 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!authLoading && !user) {
       router.push('/login')
       return
     }
 
-    if (session?.user?.id) {
+    if (user?.id) {
       loadProfile()
     }
-  }, [session, status, router])
+  }, [user, authLoading, router])
 
   const loadProfile = async () => {
     try {
@@ -32,7 +32,7 @@ export default function ProfilePage() {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', session?.user?.id)
+        .eq('id', user?.id)
         .single()
 
       if (error) {
@@ -68,7 +68,7 @@ export default function ProfilePage() {
           limitations: profile.limitations,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', session?.user?.id)
+        .eq('id', user?.id)
 
       if (error) {
         setError('プロフィールの保存に失敗しました')
@@ -103,7 +103,7 @@ export default function ProfilePage() {
     updateProfile('available_equipment', available_equipment)
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -156,7 +156,7 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="text"
-                    value={session?.user?.name || ''}
+                    value={user?.name || ''}
                     disabled
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
                   />
@@ -167,7 +167,7 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="email"
-                    value={session?.user?.email || ''}
+                    value={user?.email || ''}
                     disabled
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
                   />

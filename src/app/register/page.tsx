@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -14,6 +13,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { signUp, signInWithGoogleProvider } = useAuth()
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,83 +33,41 @@ export default function RegisterPage() {
     }
 
     try {
-      const supabase = createClient()
-      
-      // Sign up with Supabase Auth
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-          }
-        }
-      })
-
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          setError('このメールアドレスは既に登録されています')
-        } else {
-          setError('アカウント作成に失敗しました: ' + signUpError.message)
-        }
-        return
+      const success = await signUp(email, password, name)
+      if (success) {
+        router.push('/dashboard')
+      } else {
+        setError('アカウント作成に失敗しました。再度お試しください。')
       }
-
-      if (data.user) {
-        // Create user record in our database
-        const { error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            name: name,
-          })
-
-        if (userError) {
-          console.error('Error creating user record:', userError)
-        }
-
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert({
-            id: data.user.id,
-            fitness_level: 'beginner',
-            goals: [],
-            available_equipment: ['bodyweight'],
-            available_time: 30,
-          })
-
-        if (profileError) {
-          console.error('Error creating user profile:', profileError)
-        }
-
-        // Sign in automatically after successful registration
-        const result = await signIn('credentials', {
-          email,
-          password,
-          redirect: false,
-        })
-
-        if (result?.error) {
-          setError('アカウントは作成されましたが、ログインに失敗しました')
-        } else {
-          router.push('/dashboard')
-        }
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use') {
+        setError('このメールアドレスは既に登録されています')
+      } else if (error.code === 'auth/weak-password') {
+        setError('パスワードが弱すぎます。より強力なパスワードを使用してください。')
+      } else if (error.code === 'auth/invalid-email') {
+        setError('メールアドレスの形式が正しくありません')
+      } else {
+        setError('アカウント作成に失敗しました。再度お試しください。')
       }
-    } catch (error) {
-      setError('アカウント作成に失敗しました。再度お試しください。')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+  const handleGoogleSignUp = async () => {
     setLoading(true)
+    setError('')
+    
     try {
-      await signIn(provider, { callbackUrl: '/dashboard' })
+      const success = await signInWithGoogleProvider()
+      if (success) {
+        router.push('/dashboard')
+      } else {
+        setError('Googleアカウントでの登録に失敗しました。再度お試しください。')
+      }
     } catch (error) {
-      setError('アカウント作成に失敗しました。再度お試しください。')
+      setError('Googleアカウントでの登録に失敗しました。再度お試しください。')
+    } finally {
       setLoading(false)
     }
   }
@@ -215,7 +173,7 @@ export default function RegisterPage() {
 
             <div className="mt-6 space-y-3">
               <button
-                onClick={() => handleOAuthSignIn('google')}
+                onClick={handleGoogleSignUp}
                 disabled={loading}
                 className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
@@ -226,17 +184,6 @@ export default function RegisterPage() {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 Googleで登録
-              </button>
-
-              <button
-                onClick={() => handleOAuthSignIn('github')}
-                disabled={loading}
-                className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-                </svg>
-                GitHubで登録
               </button>
             </div>
           </div>

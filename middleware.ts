@@ -1,8 +1,7 @@
-import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 
-export default auth((req: NextRequest & { auth: any }) => {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   
   // Allow access to public routes
@@ -10,7 +9,6 @@ export default auth((req: NextRequest & { auth: any }) => {
     '/',
     '/login',
     '/register',
-    '/api/auth',
     '/api/generate-workout'
   ]
   
@@ -18,14 +16,11 @@ export default auth((req: NextRequest & { auth: any }) => {
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
-  
-  // Require authentication for protected routes
-  if (!req.auth) {
-    return NextResponse.redirect(new URL('/login', req.url))
-  }
-  
+
+  // For protected routes, we'll rely on Firebase Auth to handle redirects
+  // on the client side since Firebase Auth state is handled client-side
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: [

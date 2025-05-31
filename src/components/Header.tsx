@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from './AuthProvider';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { user, signOut } = useAuth();
 
   return (
     <header className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50">
@@ -39,7 +39,7 @@ export default function Header() {
               トレーニング
             </Link>
             
-            {session ? (
+            {user ? (
               <>
                 <Link 
                   href="/dashboard" 
@@ -157,7 +157,7 @@ export default function Header() {
                 トレーニング
               </Link>
               
-              {session ? (
+              {user ? (
                 <>
                   <Link 
                     href="/dashboard" 

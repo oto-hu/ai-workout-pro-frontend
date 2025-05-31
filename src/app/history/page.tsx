@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { WorkoutSession } from '@/types/auth'
@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
 export default function HistoryPage() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [sessions, setSessions] = useState<WorkoutSession[]>([])
   const [loading, setLoading] = useState(true)
@@ -17,15 +17,15 @@ export default function HistoryPage() {
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'rating'>('date')
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!authLoading && !user) {
       router.push('/login')
       return
     }
 
-    if (session?.user?.id) {
+    if (user?.id) {
       loadHistory()
     }
-  }, [session, status, router])
+  }, [user, authLoading, router])
 
   const loadHistory = async () => {
     try {
@@ -33,7 +33,7 @@ export default function HistoryPage() {
       const { data, error } = await supabase
         .from('workout_sessions')
         .select('*')
-        .eq('user_id', session?.user?.id)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -108,7 +108,7 @@ export default function HistoryPage() {
     ? sessions.filter(s => s.rating).reduce((sum, s) => sum + (s.rating || 0), 0) / sessions.filter(s => s.rating).length
     : 0
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

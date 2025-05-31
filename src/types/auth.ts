@@ -1,7 +1,8 @@
-import { User as NextAuthUser } from "next-auth"
-
-export interface User extends NextAuthUser {
+export interface User {
   id: string
+  email: string | null
+  name: string | null
+  image: string | null
 }
 
 export interface UserProfile {
@@ -45,14 +46,6 @@ export interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<boolean>
   signOut: () => Promise<void>
   updateProfile: (profile: Partial<UserProfile>) => Promise<boolean>
+  signInWithGoogleProvider: () => Promise<boolean>
 }
 
-declare module "next-auth" {
-  interface Session {
-    user: User
-  }
-  
-  interface User {
-    id: string
-  }
-}
