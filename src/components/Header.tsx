@@ -2,11 +2,20 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/components/AuthProvider';
+import { AuthService } from '@/lib/auth';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { user } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await AuthService.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   return (
     <header className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50">
@@ -39,7 +48,7 @@ export default function Header() {
               トレーニング
             </Link>
             
-            {session ? (
+            {user ? (
               <>
                 <Link 
                   href="/dashboard" 
@@ -70,7 +79,7 @@ export default function Header() {
                   プロフィール
                 </Link>
                 <button
-                  onClick={() => signOut()}
+                  onClick={handleSignOut}
                   className="text-gray-700 hover:text-red-600 font-medium transition-colors"
                   aria-label="ログアウト"
                 >
@@ -157,7 +166,7 @@ export default function Header() {
                 トレーニング
               </Link>
               
-              {session ? (
+              {user ? (
                 <>
                   <Link 
                     href="/dashboard" 
@@ -193,7 +202,7 @@ export default function Header() {
                   </Link>
                   <button
                     onClick={() => {
-                      signOut();
+                      handleSignOut();
                       setIsMenuOpen(false);
                     }}
                     className="text-left text-gray-700 hover:text-red-600 font-medium transition-colors"
