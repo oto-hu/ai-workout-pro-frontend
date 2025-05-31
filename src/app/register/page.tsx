@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
 
 export default function RegisterPage() {
+  const { signUp, signInWithGoogle, signInWithGithub } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -33,70 +33,9 @@ export default function RegisterPage() {
     }
 
     try {
-      const supabase = createClient()
-      
-      // Sign up with Supabase Auth
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-          }
-        }
-      })
-
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          setError('このメールアドレスは既に登録されています')
-        } else {
-          setError('アカウント作成に失敗しました: ' + signUpError.message)
-        }
-        return
-      }
-
-      if (data.user) {
-        // Create user record in our database
-        const { error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            name: name,
-          })
-
-        if (userError) {
-          console.error('Error creating user record:', userError)
-        }
-
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert({
-            id: data.user.id,
-            fitness_level: 'beginner',
-            goals: [],
-            available_equipment: ['bodyweight'],
-            available_time: 30,
-          })
-
-        if (profileError) {
-          console.error('Error creating user profile:', profileError)
-        }
-
-        // Sign in automatically after successful registration
-        const result = await signIn('credentials', {
-          email,
-          password,
-          redirect: false,
-        })
-
-        if (result?.error) {
-          setError('アカウントは作成されましたが、ログインに失敗しました')
-        } else {
-          router.push('/dashboard')
-        }
-      }
+      // Use Firebase Auth service for signup
+      await signUp(email, password, name)
+      router.push('/dashboard')
     } catch (error) {
       setError('アカウント作成に失敗しました。再度お試しください。')
     } finally {
@@ -107,7 +46,12 @@ export default function RegisterPage() {
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     setLoading(true)
     try {
-      await signIn(provider, { callbackUrl: '/dashboard' })
+      if (provider === 'google') {
+        await signInWithGoogle()
+      } else {
+        await signInWithGithub()
+      }
+      router.push('/dashboard')
     } catch (error) {
       setError('アカウント作成に失敗しました。再度お試しください。')
       setLoading(false)

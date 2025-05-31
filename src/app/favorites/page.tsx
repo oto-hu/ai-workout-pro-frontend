@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { FavoriteWorkout } from '@/types/auth'
@@ -9,22 +9,22 @@ import { format, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
 export default function FavoritesPage() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [favorites, setFavorites] = useState<FavoriteWorkout[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!authLoading && !user) {
       router.push('/login')
       return
     }
 
-    if (session?.user?.id) {
+    if (user?.id) {
       loadFavorites()
     }
-  }, [session, status, router])
+  }, [user, authLoading, router])
 
   const loadFavorites = async () => {
     try {
@@ -32,7 +32,7 @@ export default function FavoritesPage() {
       const { data, error } = await supabase
         .from('favorite_workouts')
         .select('*')
-        .eq('user_id', session?.user?.id)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -76,7 +76,7 @@ export default function FavoritesPage() {
     JSON.stringify(favorite.workout_data).toLowerCase().includes(filter.toLowerCase())
   )
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
