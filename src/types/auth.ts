@@ -1,7 +1,8 @@
-import { User as NextAuthUser } from "next-auth"
-
-export interface User extends NextAuthUser {
+export interface User {
   id: string
+  email: string | null
+  name?: string | null
+  image?: string | null
 }
 
 export interface UserProfile {
@@ -47,12 +48,3 @@ export interface AuthContextType {
   updateProfile: (profile: Partial<UserProfile>) => Promise<boolean>
 }
 
-declare module "next-auth" {
-  interface Session {
-    user: User
-  }
-  
-  interface User {
-    id: string
-  }
-}
