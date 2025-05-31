@@ -1,64 +1,135 @@
-import { NextAuthOptions, getServerSession } from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
-import GitHubProvider from "next-auth/providers/github"
-import CredentialsProvider from "next-auth/providers/credentials"
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  onAuthStateChanged,
+  type User,
+} from 'firebase/auth'
+import { auth } from './firebase'
+import { FirestoreService } from './firestore'
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID || "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-    }),
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-
-        // 開発用：簡単なテストユーザー認証
-        if (credentials.email === "test@example.com" && credentials.password === "password") {
-          return {
-            id: "1",
-            email: credentials.email,
-            name: "Test User",
-            image: null,
-          }
-        }
-
-        return null
-      }
-    })
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string
-      }
-      return session
-    },
-  },
-  pages: {
-    signIn: '/login',
-  },
-  session: {
-    strategy: "jwt",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
+export interface AuthUser {
+  id: string
+  email: string | null
+  name?: string | null
+  image?: string | null
 }
 
-export const getSession = () => getServerSession(authOptions)
+export class AuthService {
+  static async signInWithEmail(email: string, password: string): Promise<AuthUser> {
+    const { user } = await signInWithEmailAndPassword(auth, email, password)
+    return this.mapFirebaseUser(user)
+  }
+
+  static async signUpWithEmail(email: string, password: string, name?: string): Promise<AuthUser> {
+    const { user } = await createUserWithEmailAndPassword(auth, email, password)
+    
+    // Create user in Firestore
+    await FirestoreService.createUser({
+      id: user.uid,
+      email: user.email!,
+      name: name || user.displayName,
+      image: user.photoURL,
+    })
+
+    // Create default user profile
+    await FirestoreService.createUserProfile({
+      userId: user.uid,
+      fitnessLevel: 'beginner',
+      goals: [],
+      availableEquipment: ['bodyweight'],
+      availableTime: 30,
+    })
+
+    return this.mapFirebaseUser(user)
+  }
+
+  static async signInWithGoogle(): Promise<AuthUser> {
+    const provider = new GoogleAuthProvider()
+    const { user } = await signInWithPopup(auth, provider)
+    
+    // Check if user exists in Firestore
+    const existingUser = await FirestoreService.getUser(user.uid)
+    
+    if (!existingUser) {
+      // Create new user in Firestore
+      await FirestoreService.createUser({
+        id: user.uid,
+        email: user.email!,
+        name: user.displayName,
+        image: user.photoURL,
+      })
+
+      // Create default user profile
+      await FirestoreService.createUserProfile({
+        userId: user.uid,
+        fitnessLevel: 'beginner',
+        goals: [],
+        availableEquipment: ['bodyweight'],
+        availableTime: 30,
+      })
+    }
+
+    return this.mapFirebaseUser(user)
+  }
+
+  static async signInWithGithub(): Promise<AuthUser> {
+    const provider = new GithubAuthProvider()
+    const { user } = await signInWithPopup(auth, provider)
+    
+    // Check if user exists in Firestore
+    const existingUser = await FirestoreService.getUser(user.uid)
+    
+    if (!existingUser) {
+      // Create new user in Firestore
+      await FirestoreService.createUser({
+        id: user.uid,
+        email: user.email!,
+        name: user.displayName,
+        image: user.photoURL,
+      })
+
+      // Create default user profile
+      await FirestoreService.createUserProfile({
+        userId: user.uid,
+        fitnessLevel: 'beginner',
+        goals: [],
+        availableEquipment: ['bodyweight'],
+        availableTime: 30,
+      })
+    }
+
+    return this.mapFirebaseUser(user)
+  }
+
+  static async signOut(): Promise<void> {
+    await firebaseSignOut(auth)
+  }
+
+  static getCurrentUser(): Promise<AuthUser | null> {
+    return new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        unsubscribe()
+        resolve(user ? this.mapFirebaseUser(user) : null)
+      })
+    })
+  }
+
+  static onAuthStateChanged(callback: (user: AuthUser | null) => void) {
+    return onAuthStateChanged(auth, (user) => {
+      callback(user ? this.mapFirebaseUser(user) : null)
+    })
+  }
+
+  private static mapFirebaseUser(user: User): AuthUser {
+    return {
+      id: user.uid,
+      email: user.email,
+      name: user.displayName,
+      image: user.photoURL,
+    }
+  }
+}
