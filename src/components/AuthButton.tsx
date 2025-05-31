@@ -1,13 +1,13 @@
 'use client'
 
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useAuth } from './AuthProvider'
 import { useRouter } from 'next/navigation'
 
 export function AuthButton() {
-  const { data: session, status } = useSession()
+  const { user, loading, signOut } = useAuth()
   const router = useRouter()
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="flex items-center space-x-2">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
@@ -16,19 +16,19 @@ export function AuthButton() {
     )
   }
 
-  if (session) {
+  if (user) {
     return (
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
-          {session.user?.image && (
+          {user.image && (
             <img
-              src={session.user.image}
-              alt={session.user.name || 'User'}
+              src={user.image}
+              alt={user.name || 'User'}
               className="w-8 h-8 rounded-full"
             />
           )}
           <span className="text-sm font-medium text-gray-700">
-            {session.user?.name || 'ユーザー'}
+            {user.name || 'ユーザー'}
           </span>
         </div>
         <button
