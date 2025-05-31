@@ -1,10 +1,9 @@
-import NextAuth from "next-auth"
+import { NextAuthOptions, getServerSession } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { createClient } from "./supabase"
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -25,23 +24,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
-        const supabase = createClient()
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password,
-        })
-
-        if (error) {
-          console.error("Auth error:", error)
-          return null
-        }
-
-        if (data.user) {
+        // 開発用：簡単なテストユーザー認証
+        if (credentials.email === "test@example.com" && credentials.password === "password") {
           return {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.user_metadata?.name || data.user.email,
-            image: data.user.user_metadata?.avatar_url,
+            id: "1",
+            email: credentials.email,
+            name: "Test User",
+            image: null,
           }
         }
 
@@ -57,51 +46,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string
       }
       return session
-    },
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "google" || account?.provider === "github") {
-        const supabase = createClient()
-        
-        // Check if user exists in our database
-        const { data: existingUser } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', user.email)
-          .single()
-
-        if (!existingUser) {
-          // Create new user in our database
-          const { error } = await supabase
-            .from('users')
-            .insert({
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              image: user.image,
-            })
-
-          if (error) {
-            console.error("Error creating user:", error)
-            return false
-          }
-
-          // Create user profile
-          await supabase
-            .from('user_profiles')
-            .insert({
-              id: user.id,
-              fitness_level: 'beginner',
-              goals: [],
-              available_equipment: ['bodyweight'],
-              available_time: 30,
-            })
-        }
-      }
-      return true
     },
   },
   pages: {
@@ -110,5 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
-  secret: process.env.AUTH_SECRET,
-})
+  secret: process.env.NEXTAUTH_SECRET,
+}
+
+export const getSession = () => getServerSession(authOptions)
