@@ -15,17 +15,6 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-      return
-    }
-
-    if (user?.id) {
-      loadFavorites()
-    }
-  }, [user, authLoading, router, loadFavorites])
-
   // Helper function to convert Firestore favorite to component format
   const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => ({
     id: firestoreFavorite.id,
@@ -49,6 +38,17 @@ export default function FavoritesPage() {
       setLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+
+    if (user?.id) {
+      loadFavorites()
+    }
+  }, [user, authLoading, router, loadFavorites])
 
   const removeFavorite = async (favoriteId: string) => {
     try {
