@@ -291,7 +291,7 @@ export class WorkoutGenerator {
       timestamp: new Date().toISOString(),
       error: {
         message: error instanceof Error ? error.message : String(error),
-        type: (error as any).type || 'unknown',
+        type: (error as { type?: string }).type || 'unknown',
         stack: error instanceof Error ? error.stack : undefined
       },
       request: {
