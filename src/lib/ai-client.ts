@@ -218,7 +218,7 @@ export class AIClient {
       };
     }
 
-    if (errorObj?.status >= 500) {
+    if (errorObj?.status && errorObj.status >= 500) {
       return {
         name: 'AIGenerationError',
         type: 'api_error',
