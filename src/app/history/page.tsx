@@ -17,20 +17,37 @@ export default function HistoryPage() {
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'rating'>('date')
 
   // Helper function to convert Firestore session to component format
-  const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => ({
-    id: firestoreSession.id || '',
-    user_id: firestoreSession.userId,
-    title: firestoreSession.title,
-    target_muscles: firestoreSession.targetMuscles,
-    duration: firestoreSession.duration,
-    exercises: firestoreSession.exercises,
-    difficulty: firestoreSession.difficulty,
-    calories_burned: firestoreSession.caloriesBurned,
-    completed_at: firestoreSession.completedAt?.toDate?.()?.toISOString() || firestoreSession.completedAt,
-    rating: firestoreSession.rating,
-    notes: firestoreSession.notes,
-    created_at: firestoreSession.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-  })
+  const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => {
+    const createdAt = firestoreSession.createdAt;
+    const completedAt = firestoreSession.completedAt;
+    
+    const createdAtString = createdAt instanceof Date 
+      ? createdAt.toISOString()
+      : createdAt && typeof createdAt === 'object' && 'toDate' in createdAt
+      ? createdAt.toDate().toISOString()
+      : new Date().toISOString();
+      
+    const completedAtString = completedAt instanceof Date 
+      ? completedAt.toISOString()
+      : completedAt && typeof completedAt === 'object' && 'toDate' in completedAt
+      ? completedAt.toDate().toISOString()
+      : completedAt;
+
+    return {
+      id: firestoreSession.id || '',
+      user_id: firestoreSession.userId,
+      title: firestoreSession.title,
+      target_muscles: firestoreSession.targetMuscles,
+      duration: firestoreSession.duration,
+      exercises: firestoreSession.exercises,
+      difficulty: firestoreSession.difficulty,
+      calories_burned: firestoreSession.caloriesBurned,
+      completed_at: completedAtString,
+      rating: firestoreSession.rating,
+      notes: firestoreSession.notes,
+      created_at: createdAtString
+    };
+  }
 
   const loadHistory = useCallback(async () => {
     try {

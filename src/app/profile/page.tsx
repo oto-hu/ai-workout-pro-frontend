@@ -16,16 +16,38 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('')
 
   // Helper function to convert Firestore profile to component format
-  const convertFirestoreProfileToComponent = (firestoreProfile: import('@/lib/firestore').UserProfile): UserProfile => ({
-    id: firestoreProfile.userId,
-    fitness_level: firestoreProfile.fitnessLevel,
-    goals: firestoreProfile.goals,
-    available_equipment: firestoreProfile.availableEquipment,
-    available_time: firestoreProfile.availableTime,
-    limitations: firestoreProfile.limitations?.join?.('\n') || firestoreProfile.limitations || '',
-    created_at: firestoreProfile.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    updated_at: firestoreProfile.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
-  })
+  const convertFirestoreProfileToComponent = (firestoreProfile: import('@/lib/firestore').UserProfile): UserProfile => {
+    const createdAt = firestoreProfile.createdAt;
+    const updatedAt = firestoreProfile.updatedAt;
+    
+    const createdAtString = createdAt instanceof Date 
+      ? createdAt.toISOString()
+      : createdAt && typeof createdAt === 'object' && 'toDate' in createdAt
+      ? createdAt.toDate().toISOString()
+      : new Date().toISOString();
+      
+    const updatedAtString = updatedAt instanceof Date 
+      ? updatedAt.toISOString()
+      : updatedAt && typeof updatedAt === 'object' && 'toDate' in updatedAt
+      ? updatedAt.toDate().toISOString()
+      : new Date().toISOString();
+
+    // Handle limitations array properly
+    const limitationsString = Array.isArray(firestoreProfile.limitations) 
+      ? firestoreProfile.limitations.join('\n')
+      : firestoreProfile.limitations || '';
+
+    return {
+      id: firestoreProfile.userId,
+      fitness_level: firestoreProfile.fitnessLevel,
+      goals: firestoreProfile.goals,
+      available_equipment: firestoreProfile.availableEquipment,
+      available_time: firestoreProfile.availableTime,
+      limitations: limitationsString,
+      created_at: createdAtString,
+      updated_at: updatedAtString
+    };
+  }
 
   const loadProfile = useCallback(async () => {
     try {

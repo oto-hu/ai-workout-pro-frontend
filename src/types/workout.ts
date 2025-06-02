@@ -30,6 +30,8 @@ export interface WorkoutMenu {
   difficulty: number; // 1-5 average
   calories: number; // estimated calories burned
   equipment: string[];
+  duration?: number; // for compatibility with favorites
+  target_muscles?: string[]; // for compatibility with favorites
   createdAt: Date | import('firebase/firestore').Timestamp;
 }
 

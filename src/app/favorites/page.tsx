@@ -16,13 +16,22 @@ export default function FavoritesPage() {
   const [filter, setFilter] = useState('')
 
   // Helper function to convert Firestore favorite to component format
-  const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => ({
-    id: firestoreFavorite.id || '',
-    user_id: firestoreFavorite.userId,
-    workout_data: firestoreFavorite.workoutData,
-    title: firestoreFavorite.title,
-    created_at: firestoreFavorite.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-  })
+  const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => {
+    const createdAt = firestoreFavorite.createdAt;
+    const createdAtString = createdAt instanceof Date 
+      ? createdAt.toISOString()
+      : createdAt && typeof createdAt === 'object' && 'toDate' in createdAt
+      ? createdAt.toDate().toISOString()
+      : new Date().toISOString();
+
+    return {
+      id: firestoreFavorite.id || '',
+      user_id: firestoreFavorite.userId,
+      workout_data: firestoreFavorite.workoutData,
+      title: firestoreFavorite.title,
+      created_at: createdAtString
+    };
+  }
 
   const loadFavorites = useCallback(async () => {
     try {
@@ -197,12 +206,12 @@ export default function FavoritesPage() {
                     )}
                     {favorite.workout_data?.difficulty && (
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        favorite.workout_data.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                        favorite.workout_data.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        favorite.workout_data.difficulty <= 2 ? 'bg-green-100 text-green-800' :
+                        favorite.workout_data.difficulty <= 3 ? 'bg-yellow-100 text-yellow-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {favorite.workout_data.difficulty === 'easy' ? '簡単' :
-                         favorite.workout_data.difficulty === 'medium' ? '普通' : '難しい'}
+                        {favorite.workout_data.difficulty <= 2 ? '簡単' :
+                         favorite.workout_data.difficulty <= 3 ? '普通' : '難しい'}
                       </span>
                     )}
                     {favorite.workout_data?.target_muscles && (
