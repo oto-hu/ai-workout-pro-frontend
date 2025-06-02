@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { FirestoreService } from '@/lib/firestore'
@@ -24,7 +24,7 @@ export default function ProfilePage() {
     if (user?.id) {
       loadProfile()
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, loadProfile])
 
   // Helper function to convert Firestore profile to component format
   const convertFirestoreProfileToComponent = (firestoreProfile: import('@/lib/firestore').UserProfile): UserProfile => ({
@@ -38,7 +38,7 @@ export default function ProfilePage() {
     updated_at: firestoreProfile.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
   })
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const userId = user?.id
       if (!userId) return
@@ -50,12 +50,12 @@ export default function ProfilePage() {
       } else {
         setError('プロフィールが見つかりません')
       }
-    } catch (_error) {
+    } catch {
       setError('プロフィールの読み込みに失敗しました')
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,7 +83,7 @@ export default function ProfilePage() {
 
       await FirestoreService.updateUserProfile(userId, firestoreData)
       setSuccess('プロフィールを保存しました')
-    } catch (_error) {
+    } catch {
       setError('プロフィールの保存に失敗しました')
     } finally {
       setSaving(false)

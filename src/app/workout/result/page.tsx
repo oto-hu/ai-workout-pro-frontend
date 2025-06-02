@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { WorkoutMenu, Exercise } from '@/types/workout';
+import { WorkoutMenu } from '@/types/workout';
 import { workoutGenerator } from '@/lib/workout-generator';
 
 export default function WorkoutResultPage() {

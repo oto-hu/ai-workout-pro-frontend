@@ -2,6 +2,7 @@
 
 import { useAuth } from './AuthProvider'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export function AuthButton() {
   const { user, loading, signOut } = useAuth()
@@ -21,9 +22,11 @@ export function AuthButton() {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           {user.image && (
-            <img
+            <Image
               src={user.image}
               alt={user.name || 'User'}
+              width={32}
+              height={32}
               className="w-8 h-8 rounded-full"
             />
           )}
