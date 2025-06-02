@@ -17,7 +17,7 @@ export default function FavoritesPage() {
 
   // Helper function to convert Firestore favorite to component format
   const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => ({
-    id: firestoreFavorite.id,
+    id: firestoreFavorite.id || '',
     user_id: firestoreFavorite.userId,
     workout_data: firestoreFavorite.workoutData,
     title: firestoreFavorite.title,

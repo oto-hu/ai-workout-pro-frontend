@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
   // Helper functions to convert between Firestore and component data formats
   const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => ({
-    id: firestoreSession.id,
+    id: firestoreSession.id || '',
     user_id: firestoreSession.userId,
     title: firestoreSession.title,
     target_muscles: firestoreSession.targetMuscles,
@@ -56,7 +56,7 @@ export default function DashboardPage() {
   })
 
   const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => ({
-    id: firestoreFavorite.id,
+    id: firestoreFavorite.id || '',
     user_id: firestoreFavorite.userId,
     workout_data: firestoreFavorite.workoutData,
     title: firestoreFavorite.title,
