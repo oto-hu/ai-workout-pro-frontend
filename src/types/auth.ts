@@ -45,8 +45,9 @@ export interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<boolean>
-  signUp: (email: string, password: string, name: string) => Promise<boolean>
+  signUp: (email: string, password: string, name?: string) => Promise<boolean>
+  signInWithGoogle: () => Promise<boolean>
+  signInWithGithub: () => Promise<boolean>
   signOut: () => Promise<void>
-  updateProfile: (profile: Partial<UserProfile>) => Promise<boolean>
 }
 

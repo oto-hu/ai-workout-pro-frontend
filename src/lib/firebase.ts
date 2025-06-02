@@ -18,14 +18,15 @@ export const db = getFirestore(app)
 
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   try {
-    if (!auth._config?.emulatorHost) {
-      connectAuthEmulator(auth, 'http://localhost:9099')
-    }
-    if (!db._delegate._databaseId?.host?.includes('localhost')) {
-      connectFirestoreEmulator(db, 'localhost', 8080)
-    }
+    connectAuthEmulator(auth, 'http://localhost:9099')
   } catch (error) {
-    console.log('Firebase emulators already connected')
+    console.log('Firebase Auth emulator already connected')
+  }
+  
+  try {
+    connectFirestoreEmulator(db, 'localhost', 8080)
+  } catch (error) {
+    console.log('Firebase Firestore emulator already connected')
   }
 }
 
