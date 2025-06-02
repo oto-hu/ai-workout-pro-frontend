@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (errorObj?.status >= 500) {
+    if (errorObj?.status && errorObj.status >= 500) {
       return NextResponse.json(
         { 
           error: 'AI サービスで一時的な問題が発生しています。',

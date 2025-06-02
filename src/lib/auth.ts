@@ -31,8 +31,8 @@ export class AuthService {
     await FirestoreService.createUser({
       id: user.uid,
       email: user.email!,
-      name: name || user.displayName,
-      image: user.photoURL,
+      name: name || user.displayName || undefined,
+      image: user.photoURL || undefined,
     })
 
     // Create default user profile
@@ -59,8 +59,8 @@ export class AuthService {
       await FirestoreService.createUser({
         id: user.uid,
         email: user.email!,
-        name: user.displayName,
-        image: user.photoURL,
+        name: user.displayName || undefined,
+        image: user.photoURL || undefined,
       })
 
       // Create default user profile
@@ -88,8 +88,8 @@ export class AuthService {
       await FirestoreService.createUser({
         id: user.uid,
         email: user.email!,
-        name: user.displayName,
-        image: user.photoURL,
+        name: user.displayName || undefined,
+        image: user.photoURL || undefined,
       })
 
       // Create default user profile

@@ -207,11 +207,14 @@ export class AIClient {
     };
 
     if (errorObj?.status === 429) {
+      const retryAfterHeader = errorObj?.headers?.['retry-after'];
+      const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader as string) * 1000 : 60000;
+      
       return {
         name: 'AIGenerationError',
         type: 'rate_limit',
         message: 'APIリクエスト制限に達しました。しばらくお待ちください。',
-        retryAfter: errorObj?.headers?.['retry-after'] ? parseInt(errorObj.headers['retry-after']) * 1000 : 60000
+        retryAfter
       };
     }
 
