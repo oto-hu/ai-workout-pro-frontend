@@ -96,7 +96,7 @@ export default function SettingsPage() {
                 ].map(({ value, label, desc }) => (
                   <div
                     key={value}
-                    onClick={() => updatePreference('fitnessLevel', value as any)}
+                    onClick={() => updatePreference('fitnessLevel', value as 'beginner' | 'intermediate' | 'advanced')}
                     className={`
                       p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md
                       ${preferences.fitnessLevel === value

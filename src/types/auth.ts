@@ -1,3 +1,5 @@
+import { Exercise, WorkoutMenu } from './workout'
+
 export interface User {
   id: string
   email: string | null
@@ -22,7 +24,7 @@ export interface WorkoutSession {
   title: string
   target_muscles: string[]
   duration: number // minutes
-  exercises: any // Will be the workout data from AI
+  exercises: Exercise[] // Will be the workout data from AI
   difficulty: string
   calories_burned?: number
   completed_at?: string
@@ -34,7 +36,7 @@ export interface WorkoutSession {
 export interface FavoriteWorkout {
   id: string
   user_id: string
-  workout_data: any // Workout menu data
+  workout_data: WorkoutMenu // Workout menu data
   title: string
   created_at: string
 }

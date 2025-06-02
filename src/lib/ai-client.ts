@@ -55,19 +55,7 @@ export class AIClient {
   }
 
   private createWorkoutPrompt(request: WorkoutRequest): string {
-    const bodyPartNames = {
-      chest: '胸筋',
-      back: '背中',
-      shoulders: '肩',
-      arms: '腕',
-      abs: '腹筋',
-      legs: '脚',
-      fullbody: '全身'
-    };
-
-    const targetMusclesJa = request.targetMuscles.map(muscle => 
-      bodyPartNames[muscle as keyof typeof bodyPartNames] || muscle
-    ).join('・');
+    const targetMusclesJa = request.targetMuscles.join('・');
 
     const fitnessLevelJa = {
       beginner: '初心者',
@@ -178,20 +166,26 @@ export class AIClient {
     }
   }
 
-  private validateAIResponse(response: any): void {
+  private validateAIResponse(response: unknown): void {
     const required = ['workoutTitle', 'estimatedTime', 'difficulty', 'exercises', 'cooldown', 'totalCalories', 'equipment'];
     
+    if (typeof response !== 'object' || response === null) {
+      throw new Error('Response is not an object');
+    }
+
+    const responseObj = response as Record<string, unknown>;
+    
     for (const field of required) {
-      if (!(field in response)) {
+      if (!(field in responseObj)) {
         throw new Error(`Missing required field: ${field}`);
       }
     }
 
-    if (!Array.isArray(response.exercises) || response.exercises.length === 0) {
+    if (!Array.isArray(responseObj.exercises) || responseObj.exercises.length === 0) {
       throw new Error('Exercises array is empty or invalid');
     }
 
-    for (const exercise of response.exercises) {
+    for (const exercise of responseObj.exercises) {
       const requiredExerciseFields = ['name', 'sets', 'reps', 'restTime', 'targetMuscles', 'difficulty', 'instructions', 'tips', 'safetyNotes'];
       for (const field of requiredExerciseFields) {
         if (!(field in exercise)) {
@@ -201,17 +195,19 @@ export class AIClient {
     }
   }
 
-  private handleAPIError(error: any): AIGenerationError {
-    if (error?.status === 429) {
+  private handleAPIError(error: unknown): AIGenerationError {
+    const errorObj = error as any;
+
+    if (errorObj?.status === 429) {
       return {
         name: 'AIGenerationError',
         type: 'rate_limit',
         message: 'APIリクエスト制限に達しました。しばらくお待ちください。',
-        retryAfter: error?.headers?.['retry-after'] ? parseInt(error.headers['retry-after']) * 1000 : 60000
+        retryAfter: errorObj?.headers?.['retry-after'] ? parseInt(errorObj.headers['retry-after']) * 1000 : 60000
       };
     }
 
-    if (error?.status >= 500) {
+    if (errorObj?.status >= 500) {
       return {
         name: 'AIGenerationError',
         type: 'api_error',
@@ -219,7 +215,7 @@ export class AIClient {
       };
     }
 
-    if (error?.code === 'ENOTFOUND' || error?.code === 'ECONNREFUSED') {
+    if (errorObj?.code === 'ENOTFOUND' || errorObj?.code === 'ECONNREFUSED') {
       return {
         name: 'AIGenerationError',
         type: 'network_error',
@@ -227,7 +223,7 @@ export class AIClient {
       };
     }
 
-    if (error?.message?.includes('JSON') || error?.message?.includes('field')) {
+    if (errorObj?.message?.includes('JSON') || errorObj?.message?.includes('field')) {
       return {
         name: 'AIGenerationError',
         type: 'validation_error',
@@ -238,7 +234,7 @@ export class AIClient {
     return {
       name: 'AIGenerationError',
       type: 'unknown',
-      message: error?.message || '予期しないエラーが発生しました。'
+      message: errorObj?.message || '予期しないエラーが発生しました。'
     };
   }
 }

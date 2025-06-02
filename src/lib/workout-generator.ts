@@ -288,13 +288,13 @@ export class WorkoutGenerator {
   /**
    * Log errors for monitoring and improvement
    */
-  private logError(error: any, request: WorkoutRequest): void {
+  private logError(error: unknown, request: WorkoutRequest): void {
     const errorLog = {
       timestamp: new Date().toISOString(),
       error: {
-        message: error.message,
-        type: error.type || 'unknown',
-        stack: error.stack
+        message: error instanceof Error ? error.message : String(error),
+        type: (error as any).type || 'unknown',
+        stack: error instanceof Error ? error.stack : undefined
       },
       request: {
         targetMuscles: request.targetMuscles,
@@ -328,17 +328,17 @@ export class WorkoutGenerator {
   /**
    * Get error statistics for monitoring
    */
-  getErrorStats(): any {
+  getErrorStats(): { totalErrors: number; recentErrors: number; errorTypes: Record<string, number> } | null {
     if (typeof window === 'undefined') return null;
     
     try {
       const errors = JSON.parse(localStorage.getItem('aiWorkoutPro_errors') || '[]');
       return {
         totalErrors: errors.length,
-        recentErrors: errors.filter((e: any) => 
+        recentErrors: errors.filter((e: { timestamp: string }) => 
           Date.now() - new Date(e.timestamp).getTime() < 24 * 60 * 60 * 1000
         ).length,
-        errorTypes: errors.reduce((acc: any, error: any) => {
+        errorTypes: errors.reduce((acc: Record<string, number>, error: { error: { type?: string } }) => {
           const type = error.error.type || 'unknown';
           acc[type] = (acc[type] || 0) + 1;
           return acc;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { FirestoreService } from '@/lib/firestore'
@@ -24,10 +24,10 @@ export default function FavoritesPage() {
     if (user?.id) {
       loadFavorites()
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, loadFavorites])
 
   // Helper function to convert Firestore favorite to component format
-  const convertFirestoreFavoriteToComponent = (firestoreFavorite: any): FavoriteWorkout => ({
+  const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => ({
     id: firestoreFavorite.id,
     user_id: firestoreFavorite.userId,
     workout_data: firestoreFavorite.workoutData,
@@ -35,7 +35,7 @@ export default function FavoritesPage() {
     created_at: firestoreFavorite.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
   })
 
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     try {
       const userId = user?.id
       if (!userId) return
@@ -48,7 +48,7 @@ export default function FavoritesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   const removeFavorite = async (favoriteId: string) => {
     try {
@@ -59,7 +59,7 @@ export default function FavoritesPage() {
     }
   }
 
-  const startWorkout = (workoutData: any) => {
+  const startWorkout = (workoutData: import('@/types/workout').WorkoutMenu) => {
     // Store the workout data and redirect to workout result page
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('generatedWorkout', JSON.stringify(workoutData))
@@ -174,7 +174,7 @@ export default function FavoritesPage() {
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">エクササイズ:</h4>
                       <div className="space-y-1">
-                        {favorite.workout_data.exercises.slice(0, 3).map((exercise: any, index: number) => (
+                        {favorite.workout_data.exercises.slice(0, 3).map((exercise, index: number) => (
                           <div key={index} className="text-sm text-gray-600">
                             • {exercise.name}
                           </div>

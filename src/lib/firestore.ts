@@ -14,6 +14,7 @@ import {
   serverTimestamp,
   type DocumentData,
   type QueryConstraint,
+  type Timestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -22,8 +23,8 @@ export interface User {
   email: string
   name?: string
   image?: string
-  createdAt?: any
-  updatedAt?: any
+  createdAt?: Date | Timestamp
+  updatedAt?: Date | Timestamp
 }
 
 export interface UserProfile {
@@ -33,8 +34,8 @@ export interface UserProfile {
   availableEquipment: string[]
   availableTime: number
   limitations?: string[]
-  createdAt?: any
-  updatedAt?: any
+  createdAt?: Date | Timestamp
+  updatedAt?: Date | Timestamp
 }
 
 export interface WorkoutSession {
@@ -43,21 +44,21 @@ export interface WorkoutSession {
   title: string
   targetMuscles: string[]
   duration: number
-  exercises: any[]
+  exercises: import('../types/workout').Exercise[]
   difficulty: 'easy' | 'medium' | 'hard'
   caloriesBurned?: number
   rating?: number
   notes?: string
-  completedAt?: any
-  createdAt?: any
+  completedAt?: Date | Timestamp
+  createdAt?: Date | Timestamp
 }
 
 export interface FavoriteWorkout {
   id?: string
   userId: string
-  workoutData: any
+  workoutData: import('../types/workout').WorkoutMenu
   title: string
-  createdAt?: any
+  createdAt?: Date | Timestamp
 }
 
 export class FirestoreService {

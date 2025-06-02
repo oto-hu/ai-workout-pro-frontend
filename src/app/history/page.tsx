@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { FirestoreService } from '@/lib/firestore'
@@ -25,10 +25,10 @@ export default function HistoryPage() {
     if (user?.id) {
       loadHistory()
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, loadHistory])
 
   // Helper function to convert Firestore session to component format
-  const convertFirestoreSessionToComponent = (firestoreSession: any): WorkoutSession => ({
+  const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => ({
     id: firestoreSession.id,
     user_id: firestoreSession.userId,
     title: firestoreSession.title,
@@ -43,7 +43,7 @@ export default function HistoryPage() {
     created_at: firestoreSession.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
   })
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       const userId = user?.id
       if (!userId) return
@@ -56,7 +56,7 @@ export default function HistoryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   const updateRating = async (sessionId: string, rating: number) => {
     try {
@@ -153,7 +153,7 @@ export default function HistoryPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">フィルター</label>
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => setFilter(e.target.value as 'all' | 'completed' | 'rated')}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
               >
                 <option value="all">すべて</option>
@@ -165,7 +165,7 @@ export default function HistoryPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">並び順</label>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'date' | 'duration' | 'rating')}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
               >
                 <option value="date">日付順</option>

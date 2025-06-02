@@ -36,7 +36,7 @@ export default function RegisterPage() {
       // Use Firebase Auth service for signup
       await signUp(email, password, name)
       router.push('/dashboard')
-    } catch (error) {
+    } catch (_error) {
       setError('アカウント作成に失敗しました。再度お試しください。')
     } finally {
       setLoading(false)
@@ -52,7 +52,7 @@ export default function RegisterPage() {
         await signInWithGithub()
       }
       router.push('/dashboard')
-    } catch (error) {
+    } catch (_error) {
       setError('アカウント作成に失敗しました。再度お試しください。')
       setLoading(false)
     }

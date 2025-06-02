@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { FirestoreService } from '@/lib/firestore'
@@ -48,10 +48,10 @@ export default function DashboardPage() {
     if (user?.id) {
       loadDashboardData()
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, loadDashboardData])
 
   // Helper functions to convert between Firestore and component data formats
-  const convertFirestoreSessionToComponent = (firestoreSession: any): WorkoutSession => ({
+  const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => ({
     id: firestoreSession.id,
     user_id: firestoreSession.userId,
     title: firestoreSession.title,
@@ -66,7 +66,7 @@ export default function DashboardPage() {
     created_at: firestoreSession.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
   })
 
-  const convertFirestoreFavoriteToComponent = (firestoreFavorite: any): FavoriteWorkout => ({
+  const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => ({
     id: firestoreFavorite.id,
     user_id: firestoreFavorite.userId,
     workout_data: firestoreFavorite.workoutData,
@@ -74,7 +74,7 @@ export default function DashboardPage() {
     created_at: firestoreFavorite.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
   })
 
-  const convertFirestoreProfileToComponent = (firestoreProfile: any): UserProfile => ({
+  const convertFirestoreProfileToComponent = (firestoreProfile: import('@/lib/firestore').UserProfile): UserProfile => ({
     id: firestoreProfile.userId,
     fitness_level: firestoreProfile.fitnessLevel,
     goals: firestoreProfile.goals,
@@ -85,7 +85,7 @@ export default function DashboardPage() {
     updated_at: firestoreProfile.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
   })
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       const userId = user?.id
       if (!userId) return
@@ -110,7 +110,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   // Calculate statistics
   const now = new Date()
