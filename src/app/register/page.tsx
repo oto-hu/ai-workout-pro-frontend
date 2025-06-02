@@ -34,8 +34,12 @@ export default function RegisterPage() {
 
     try {
       // Use Firebase Auth service for signup
-      await signUp(email, password, name)
-      router.push('/dashboard')
+      const success = await signUp(email, password, name)
+      if (success) {
+        router.push('/dashboard')
+      } else {
+        setError('アカウント作成に失敗しました。再度お試しください。')
+      }
     } catch {
       setError('アカウント作成に失敗しました。再度お試しください。')
     } finally {
@@ -46,14 +50,21 @@ export default function RegisterPage() {
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     setLoading(true)
     try {
+      let success = false
       if (provider === 'google') {
-        await signInWithGoogle()
+        success = await signInWithGoogle()
       } else {
-        await signInWithGithub()
+        success = await signInWithGithub()
       }
-      router.push('/dashboard')
+      
+      if (success) {
+        router.push('/dashboard')
+      } else {
+        setError('アカウント作成に失敗しました。再度お試しください。')
+      }
     } catch {
       setError('アカウント作成に失敗しました。再度お試しください。')
+    } finally {
       setLoading(false)
     }
   }

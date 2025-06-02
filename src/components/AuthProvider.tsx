@@ -6,10 +6,10 @@ import { AuthService, type AuthUser } from '../lib/auth'
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<AuthUser>
-  signUp: (email: string, password: string, name?: string) => Promise<AuthUser>
-  signInWithGoogle: () => Promise<AuthUser>
-  signInWithGithub: () => Promise<AuthUser>
+  signIn: (email: string, password: string) => Promise<boolean>
+  signUp: (email: string, password: string, name?: string) => Promise<boolean>
+  signInWithGoogle: () => Promise<boolean>
+  signInWithGithub: () => Promise<boolean>
   signOut: () => Promise<void>
 }
 
@@ -31,10 +31,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     loading,
-    signIn: AuthService.signInWithEmail,
-    signUp: AuthService.signUpWithEmail,
-    signInWithGoogle: AuthService.signInWithGoogle,
-    signInWithGithub: AuthService.signInWithGithub,
+    signIn: async (email: string, password: string) => {
+      try {
+        await AuthService.signInWithEmail(email, password)
+        return true
+      } catch {
+        return false
+      }
+    },
+    signUp: async (email: string, password: string, name?: string) => {
+      try {
+        await AuthService.signUpWithEmail(email, password, name)
+        return true
+      } catch {
+        return false
+      }
+    },
+    signInWithGoogle: async () => {
+      try {
+        await AuthService.signInWithGoogle()
+        return true
+      } catch {
+        return false
+      }
+    },
+    signInWithGithub: async () => {
+      try {
+        await AuthService.signInWithGithub()
+        return true
+      } catch {
+        return false
+      }
+    },
     signOut: AuthService.signOut,
   }
 

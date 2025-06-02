@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { signIn, signInWithGoogle, signInWithGithub } = useAuth()
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,16 +19,11 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setError('メールアドレスまたはパスワードが正しくありません')
-      } else {
+      const success = await signIn(email, password)
+      if (success) {
         router.push('/dashboard')
+      } else {
+        setError('メールアドレスまたはパスワードが正しくありません')
       }
     } catch (error) {
       setError('ログインに失敗しました。再度お試しください。')
@@ -39,9 +35,21 @@ export default function LoginPage() {
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     setLoading(true)
     try {
-      await signIn(provider, { callbackUrl: '/dashboard' })
+      let success = false
+      if (provider === 'google') {
+        success = await signInWithGoogle()
+      } else if (provider === 'github') {
+        success = await signInWithGithub()
+      }
+      
+      if (success) {
+        router.push('/dashboard')
+      } else {
+        setError('ログインに失敗しました。再度お試しください。')
+      }
     } catch (error) {
       setError('ログインに失敗しました。再度お試しください。')
+    } finally {
       setLoading(false)
     }
   }

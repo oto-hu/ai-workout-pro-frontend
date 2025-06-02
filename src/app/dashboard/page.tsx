@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
-import { FirestoreService } from '@/lib/firestore'
+import { FirestoreService, toISOString } from '@/lib/firestore'
 import { WorkoutSession, FavoriteWorkout, UserProfile } from '@/types/auth'
 import { format, parseISO, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -49,10 +49,10 @@ export default function DashboardPage() {
     exercises: firestoreSession.exercises,
     difficulty: firestoreSession.difficulty,
     calories_burned: firestoreSession.caloriesBurned,
-    completed_at: firestoreSession.completedAt?.toDate?.()?.toISOString() || firestoreSession.completedAt,
+    completed_at: toISOString(firestoreSession.completedAt) || '',
     rating: firestoreSession.rating,
     notes: firestoreSession.notes,
-    created_at: firestoreSession.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    created_at: toISOString(firestoreSession.createdAt) || new Date().toISOString()
   })
 
   const convertFirestoreFavoriteToComponent = (firestoreFavorite: import('@/lib/firestore').FavoriteWorkout): FavoriteWorkout => ({
@@ -60,7 +60,7 @@ export default function DashboardPage() {
     user_id: firestoreFavorite.userId,
     workout_data: firestoreFavorite.workoutData,
     title: firestoreFavorite.title,
-    created_at: firestoreFavorite.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    created_at: toISOString(firestoreFavorite.createdAt) || new Date().toISOString()
   })
 
   const convertFirestoreProfileToComponent = (firestoreProfile: import('@/lib/firestore').UserProfile): UserProfile => ({
@@ -69,9 +69,11 @@ export default function DashboardPage() {
     goals: firestoreProfile.goals,
     available_equipment: firestoreProfile.availableEquipment,
     available_time: firestoreProfile.availableTime,
-    limitations: firestoreProfile.limitations?.join?.('\n') || firestoreProfile.limitations || '',
-    created_at: firestoreProfile.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    updated_at: firestoreProfile.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    limitations: Array.isArray(firestoreProfile.limitations) 
+      ? firestoreProfile.limitations.join('\n') 
+      : firestoreProfile.limitations || '',
+    created_at: toISOString(firestoreProfile.createdAt) || new Date().toISOString(),
+    updated_at: toISOString(firestoreProfile.updatedAt) || new Date().toISOString()
   })
 
   const loadDashboardData = useCallback(async () => {

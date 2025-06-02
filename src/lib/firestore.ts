@@ -18,6 +18,19 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 
+// Utility function to safely convert Timestamp to Date
+export function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
+  if (!timestamp) return undefined
+  if (timestamp instanceof Date) return timestamp
+  return timestamp.toDate()
+}
+
+// Utility function to safely convert Timestamp to ISO string
+export function toISOString(timestamp: Date | Timestamp | undefined): string | undefined {
+  const date = toDate(timestamp)
+  return date?.toISOString()
+}
+
 export interface User {
   id: string
   email: string

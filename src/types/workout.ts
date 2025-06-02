@@ -30,7 +30,7 @@ export interface WorkoutMenu {
   difficulty: number; // 1-5 average
   calories: number; // estimated calories burned
   equipment: string[];
-  createdAt: Date;
+  createdAt: Date | import('firebase/firestore').Timestamp;
 }
 
 export interface WorkoutGeneration {
