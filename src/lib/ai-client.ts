@@ -161,7 +161,7 @@ export class AIClient {
 
       return aiResponse;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAPIError(error);
     }
   }
@@ -196,7 +196,15 @@ export class AIClient {
   }
 
   private handleAPIError(error: unknown): AIGenerationError {
-    const errorObj = error as any;
+    const errorObj = error as {
+      status?: number;
+      message?: string;
+      code?: string;
+      type?: string;
+      headers?: Record<string, string>;
+      retryAfter?: number;
+      [key: string]: unknown;
+    };
 
     if (errorObj?.status === 429) {
       return {

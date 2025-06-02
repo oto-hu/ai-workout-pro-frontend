@@ -6,8 +6,7 @@ import {
   WorkoutMenu, 
   Exercise, 
   UserPreferences,
-  AIExercise,
-  AIGenerationError 
+  AIExercise
 } from '@/types/workout';
 
 const STORAGE_KEY = 'aiWorkoutPro_userPreferences';
@@ -203,8 +202,7 @@ export class WorkoutGenerator {
    */
   async generateWorkoutWithStreaming(
     selectedBodyParts: string[],
-    onProgress: (progress: number, message: string) => void,
-    onStreamingUpdate?: (partialResponse: string) => void
+    onProgress: (progress: number, message: string) => void
   ): Promise<WorkoutMenu> {
     const messages = [
       'ユーザー設定を分析中...',
@@ -319,7 +317,7 @@ export class WorkoutGenerator {
           errors.splice(0, errors.length - 10);
         }
         localStorage.setItem('aiWorkoutPro_errors', JSON.stringify(errors));
-      } catch (e) {
+      } catch {
         // Ignore localStorage errors
       }
     }
@@ -344,7 +342,7 @@ export class WorkoutGenerator {
           return acc;
         }, {})
       };
-    } catch (e) {
+    } catch {
       return null;
     }
   }

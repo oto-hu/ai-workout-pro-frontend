@@ -38,16 +38,6 @@ function checkRateLimit(key: string): { allowed: boolean; remaining: number; res
 }
 
 function createWorkoutPrompt(request: WorkoutRequest): string {
-  const bodyPartNames = {
-    chest: '胸筋',
-    back: '背中',
-    shoulders: '肩',
-    arms: '腕',
-    abs: '腹筋',
-    legs: '脚',
-    fullbody: '全身'
-  };
-
   const targetMusclesJa = request.targetMuscles.join('・');
   const fitnessLevelJa = {
     beginner: '初心者',
@@ -219,7 +209,7 @@ export async function POST(request: NextRequest) {
     let aiResponse: AIWorkoutResponse;
     try {
       aiResponse = JSON.parse(content);
-    } catch (parseError) {
+    } catch {
       throw new Error('Invalid JSON response from AI');
     }
 
@@ -248,7 +238,12 @@ export async function POST(request: NextRequest) {
     console.error('AI workout generation error:', error);
 
     // Handle different types of errors
-    const errorObj = error as any;
+    const errorObj = error as {
+      status?: number;
+      message?: string;
+      code?: string;
+      [key: string]: unknown;
+    };
     
     if (errorObj?.status === 429) {
       return NextResponse.json(
