@@ -27,7 +27,7 @@ export default function ProfilePage() {
   }, [user, authLoading, router])
 
   // Helper function to convert Firestore profile to component format
-  const convertFirestoreProfileToComponent = (firestoreProfile: any): UserProfile => ({
+  const convertFirestoreProfileToComponent = (firestoreProfile: import('@/lib/firestore').UserProfile): UserProfile => ({
     id: firestoreProfile.userId,
     fitness_level: firestoreProfile.fitnessLevel,
     goals: firestoreProfile.goals,
@@ -50,7 +50,7 @@ export default function ProfilePage() {
       } else {
         setError('プロフィールが見つかりません')
       }
-    } catch (error) {
+    } catch (_error) {
       setError('プロフィールの読み込みに失敗しました')
     } finally {
       setLoading(false)
@@ -83,14 +83,14 @@ export default function ProfilePage() {
 
       await FirestoreService.updateUserProfile(userId, firestoreData)
       setSuccess('プロフィールを保存しました')
-    } catch (error) {
+    } catch (_error) {
       setError('プロフィールの保存に失敗しました')
     } finally {
       setSaving(false)
     }
   }
 
-  const updateProfile = (field: keyof UserProfile, value: any) => {
+  const updateProfile = (field: keyof UserProfile, value: string | string[] | number) => {
     if (!profile) return
     setProfile({ ...profile, [field]: value })
   }

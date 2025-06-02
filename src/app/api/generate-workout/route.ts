@@ -111,24 +111,30 @@ function createWorkoutPrompt(request: WorkoutRequest): string {
 `;
 }
 
-function validateWorkoutRequest(body: any): { valid: boolean; error?: string } {
-  if (!body.targetMuscles || !Array.isArray(body.targetMuscles) || body.targetMuscles.length === 0) {
+function validateWorkoutRequest(body: unknown): { valid: boolean; error?: string } {
+  if (typeof body !== 'object' || body === null) {
+    return { valid: false, error: 'Request body must be an object' };
+  }
+
+  const bodyObj = body as Record<string, unknown>;
+
+  if (!bodyObj.targetMuscles || !Array.isArray(bodyObj.targetMuscles) || bodyObj.targetMuscles.length === 0) {
     return { valid: false, error: 'targetMuscles is required and must be a non-empty array' };
   }
 
-  if (!body.fitnessLevel || !['beginner', 'intermediate', 'advanced'].includes(body.fitnessLevel)) {
+  if (!bodyObj.fitnessLevel || !['beginner', 'intermediate', 'advanced'].includes(bodyObj.fitnessLevel as string)) {
     return { valid: false, error: 'fitnessLevel must be beginner, intermediate, or advanced' };
   }
 
-  if (!body.duration || typeof body.duration !== 'number' || body.duration < 5 || body.duration > 120) {
+  if (!bodyObj.duration || typeof bodyObj.duration !== 'number' || bodyObj.duration < 5 || bodyObj.duration > 120) {
     return { valid: false, error: 'duration must be a number between 5 and 120 minutes' };
   }
 
-  if (!body.equipment || !Array.isArray(body.equipment) || body.equipment.length === 0) {
+  if (!bodyObj.equipment || !Array.isArray(bodyObj.equipment) || bodyObj.equipment.length === 0) {
     return { valid: false, error: 'equipment is required and must be a non-empty array' };
   }
 
-  if (!body.goals || !Array.isArray(body.goals) || body.goals.length === 0) {
+  if (!bodyObj.goals || !Array.isArray(bodyObj.goals) || bodyObj.goals.length === 0) {
     return { valid: false, error: 'goals is required and must be a non-empty array' };
   }
 
@@ -238,11 +244,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI workout generation error:', error);
 
     // Handle different types of errors
-    if (error?.status === 429) {
+    const errorObj = error as any;
+    
+    if (errorObj?.status === 429) {
       return NextResponse.json(
         { 
           error: 'APIリクエスト制限に達しました。しばらくお待ちください。',
@@ -253,7 +261,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (error?.status >= 500) {
+    if (errorObj?.status >= 500) {
       return NextResponse.json(
         { 
           error: 'AI サービスで一時的な問題が発生しています。',
@@ -263,7 +271,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (error?.code === 'ENOTFOUND' || error?.code === 'ECONNREFUSED') {
+    if (errorObj?.code === 'ENOTFOUND' || errorObj?.code === 'ECONNREFUSED') {
       return NextResponse.json(
         { 
           error: 'ネットワーク接続に問題があります。',
@@ -275,7 +283,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { 
-        error: error?.message || '予期しないエラーが発生しました。',
+        error: errorObj?.message || '予期しないエラーが発生しました。',
         type: 'unknown'
       },
       { status: 500 }

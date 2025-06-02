@@ -46,8 +46,8 @@ export default function WorkoutResultPage() {
       
       setWorkoutMenu(newMenu);
       sessionStorage.setItem('generatedWorkout', JSON.stringify(newMenu));
-    } catch (error) {
-      console.error('Regeneration failed:', error);
+    } catch (_error) {
+      console.error('Regeneration failed:', _error);
       // Fallback to original mock generation if needed
     } finally {
       setRegenerating(false);
