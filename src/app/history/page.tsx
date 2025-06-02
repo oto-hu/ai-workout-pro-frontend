@@ -18,7 +18,7 @@ export default function HistoryPage() {
 
   // Helper function to convert Firestore session to component format
   const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => ({
-    id: firestoreSession.id,
+    id: firestoreSession.id || '',
     user_id: firestoreSession.userId,
     title: firestoreSession.title,
     target_muscles: firestoreSession.targetMuscles,
