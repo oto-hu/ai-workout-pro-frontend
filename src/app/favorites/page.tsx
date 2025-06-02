@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { FirestoreService } from '@/lib/firestore'
 import { FavoriteWorkout } from '@/types/auth'
 import { format, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -26,20 +26,23 @@ export default function FavoritesPage() {
     }
   }, [user, authLoading, router])
 
+  // Helper function to convert Firestore favorite to component format
+  const convertFirestoreFavoriteToComponent = (firestoreFavorite: any): FavoriteWorkout => ({
+    id: firestoreFavorite.id,
+    user_id: firestoreFavorite.userId,
+    workout_data: firestoreFavorite.workoutData,
+    title: firestoreFavorite.title,
+    created_at: firestoreFavorite.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+  })
+
   const loadFavorites = async () => {
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('favorite_workouts')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
+      const userId = user?.id
+      if (!userId) return
 
-      if (error) {
-        console.error('Error loading favorites:', error)
-      } else {
-        setFavorites(data || [])
-      }
+      const favoritesData = await FirestoreService.getUserFavoriteWorkouts(userId)
+      const convertedFavorites = favoritesData.map(convertFirestoreFavoriteToComponent)
+      setFavorites(convertedFavorites)
     } catch (error) {
       console.error('Error loading favorites:', error)
     } finally {
@@ -49,15 +52,8 @@ export default function FavoritesPage() {
 
   const removeFavorite = async (favoriteId: string) => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('favorite_workouts')
-        .delete()
-        .eq('id', favoriteId)
-
-      if (!error) {
-        setFavorites(favorites.filter(f => f.id !== favoriteId))
-      }
+      await FirestoreService.deleteFavoriteWorkout(favoriteId)
+      setFavorites(favorites.filter(f => f.id !== favoriteId))
     } catch (error) {
       console.error('Error removing favorite:', error)
     }

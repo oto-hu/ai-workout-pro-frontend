@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { FirestoreService } from '@/lib/firestore'
 import { UserProfile } from '@/types/auth'
 
 export default function ProfilePage() {
@@ -26,20 +26,29 @@ export default function ProfilePage() {
     }
   }, [user, authLoading, router])
 
+  // Helper function to convert Firestore profile to component format
+  const convertFirestoreProfileToComponent = (firestoreProfile: any): UserProfile => ({
+    id: firestoreProfile.userId,
+    fitness_level: firestoreProfile.fitnessLevel,
+    goals: firestoreProfile.goals,
+    available_equipment: firestoreProfile.availableEquipment,
+    available_time: firestoreProfile.availableTime,
+    limitations: firestoreProfile.limitations?.join?.('\n') || firestoreProfile.limitations || '',
+    created_at: firestoreProfile.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    updated_at: firestoreProfile.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+  })
+
   const loadProfile = async () => {
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single()
+      const userId = user?.id
+      if (!userId) return
 
-      if (error) {
-        console.error('Error loading profile:', error)
-        setError('プロフィールの読み込みに失敗しました')
+      const profileData = await FirestoreService.getUserProfile(userId)
+      if (profileData) {
+        const convertedProfile = convertFirestoreProfileToComponent(profileData)
+        setProfile(convertedProfile)
       } else {
-        setProfile(data)
+        setError('プロフィールが見つかりません')
       }
     } catch (error) {
       setError('プロフィールの読み込みに失敗しました')
@@ -57,24 +66,23 @@ export default function ProfilePage() {
     setSuccess('')
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          fitness_level: profile.fitness_level,
-          goals: profile.goals,
-          available_equipment: profile.available_equipment,
-          available_time: profile.available_time,
-          limitations: profile.limitations,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user?.id)
-
-      if (error) {
-        setError('プロフィールの保存に失敗しました')
-      } else {
-        setSuccess('プロフィールを保存しました')
+      const userId = user?.id
+      if (!userId) {
+        setError('ユーザー情報が見つかりません')
+        return
       }
+
+      // Convert component format to Firestore format
+      const firestoreData = {
+        fitnessLevel: profile.fitness_level,
+        goals: profile.goals,
+        availableEquipment: profile.available_equipment,
+        availableTime: profile.available_time,
+        limitations: profile.limitations ? profile.limitations.split('\n').filter(l => l.trim()) : []
+      }
+
+      await FirestoreService.updateUserProfile(userId, firestoreData)
+      setSuccess('プロフィールを保存しました')
     } catch (error) {
       setError('プロフィールの保存に失敗しました')
     } finally {
