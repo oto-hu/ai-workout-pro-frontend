@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { FirestoreService } from '@/lib/firestore'
 import { WorkoutSession, FavoriteWorkout, UserProfile } from '@/types/auth'
 import { format, parseISO, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -50,32 +50,61 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
+  // Helper functions to convert between Firestore and component data formats
+  const convertFirestoreSessionToComponent = (firestoreSession: any): WorkoutSession => ({
+    id: firestoreSession.id,
+    user_id: firestoreSession.userId,
+    title: firestoreSession.title,
+    target_muscles: firestoreSession.targetMuscles,
+    duration: firestoreSession.duration,
+    exercises: firestoreSession.exercises,
+    difficulty: firestoreSession.difficulty,
+    calories_burned: firestoreSession.caloriesBurned,
+    completed_at: firestoreSession.completedAt?.toDate?.()?.toISOString() || firestoreSession.completedAt,
+    rating: firestoreSession.rating,
+    notes: firestoreSession.notes,
+    created_at: firestoreSession.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+  })
+
+  const convertFirestoreFavoriteToComponent = (firestoreFavorite: any): FavoriteWorkout => ({
+    id: firestoreFavorite.id,
+    user_id: firestoreFavorite.userId,
+    workout_data: firestoreFavorite.workoutData,
+    title: firestoreFavorite.title,
+    created_at: firestoreFavorite.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+  })
+
+  const convertFirestoreProfileToComponent = (firestoreProfile: any): UserProfile => ({
+    id: firestoreProfile.userId,
+    fitness_level: firestoreProfile.fitnessLevel,
+    goals: firestoreProfile.goals,
+    available_equipment: firestoreProfile.availableEquipment,
+    available_time: firestoreProfile.availableTime,
+    limitations: firestoreProfile.limitations?.join?.('\n') || firestoreProfile.limitations || '',
+    created_at: firestoreProfile.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    updated_at: firestoreProfile.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+  })
+
   const loadDashboardData = async () => {
     try {
-      const supabase = createClient()
       const userId = user?.id
+      if (!userId) return
 
       // Load all data in parallel
-      const [sessionsResult, favoritesResult, profileResult] = await Promise.all([
-        supabase
-          .from('workout_sessions')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('favorite_workouts')
-          .select('*')
-          .eq('user_id', userId),
-        supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', userId)
-          .single()
+      const [sessionsData, favoritesData, profileData] = await Promise.all([
+        FirestoreService.getUserWorkoutSessions(userId),
+        FirestoreService.getUserFavoriteWorkouts(userId),
+        FirestoreService.getUserProfile(userId)
       ])
 
-      setSessions(sessionsResult.data || [])
-      setFavorites(favoritesResult.data || [])
-      setProfile(profileResult.data)
+      // Convert Firestore data to component format
+      const convertedSessions = sessionsData.map(convertFirestoreSessionToComponent)
+      const convertedFavorites = favoritesData.map(convertFirestoreFavoriteToComponent)
+      const convertedProfile = profileData ? convertFirestoreProfileToComponent(profileData) : null
+
+      setSessions(convertedSessions)
+      setFavorites(convertedFavorites)
+      setProfile(convertedProfile)
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     } finally {

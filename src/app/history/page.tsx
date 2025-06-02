@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { FirestoreService } from '@/lib/firestore'
 import { WorkoutSession } from '@/types/auth'
 import { format, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -27,20 +27,30 @@ export default function HistoryPage() {
     }
   }, [user, authLoading, router])
 
+  // Helper function to convert Firestore session to component format
+  const convertFirestoreSessionToComponent = (firestoreSession: any): WorkoutSession => ({
+    id: firestoreSession.id,
+    user_id: firestoreSession.userId,
+    title: firestoreSession.title,
+    target_muscles: firestoreSession.targetMuscles,
+    duration: firestoreSession.duration,
+    exercises: firestoreSession.exercises,
+    difficulty: firestoreSession.difficulty,
+    calories_burned: firestoreSession.caloriesBurned,
+    completed_at: firestoreSession.completedAt?.toDate?.()?.toISOString() || firestoreSession.completedAt,
+    rating: firestoreSession.rating,
+    notes: firestoreSession.notes,
+    created_at: firestoreSession.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+  })
+
   const loadHistory = async () => {
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('workout_sessions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
+      const userId = user?.id
+      if (!userId) return
 
-      if (error) {
-        console.error('Error loading history:', error)
-      } else {
-        setSessions(data || [])
-      }
+      const sessionsData = await FirestoreService.getUserWorkoutSessions(userId)
+      const convertedSessions = sessionsData.map(convertFirestoreSessionToComponent)
+      setSessions(convertedSessions)
     } catch (error) {
       console.error('Error loading history:', error)
     } finally {
@@ -50,17 +60,10 @@ export default function HistoryPage() {
 
   const updateRating = async (sessionId: string, rating: number) => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('workout_sessions')
-        .update({ rating })
-        .eq('id', sessionId)
-
-      if (!error) {
-        setSessions(sessions.map(s => 
-          s.id === sessionId ? { ...s, rating } : s
-        ))
-      }
+      await FirestoreService.updateWorkoutSession(sessionId, { rating })
+      setSessions(sessions.map(s => 
+        s.id === sessionId ? { ...s, rating } : s
+      ))
     } catch (error) {
       console.error('Error updating rating:', error)
     }
@@ -68,17 +71,10 @@ export default function HistoryPage() {
 
   const updateNotes = async (sessionId: string, notes: string) => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('workout_sessions')
-        .update({ notes })
-        .eq('id', sessionId)
-
-      if (!error) {
-        setSessions(sessions.map(s => 
-          s.id === sessionId ? { ...s, notes } : s
-        ))
-      }
+      await FirestoreService.updateWorkoutSession(sessionId, { notes })
+      setSessions(sessions.map(s => 
+        s.id === sessionId ? { ...s, notes } : s
+      ))
     } catch (error) {
       console.error('Error updating notes:', error)
     }
