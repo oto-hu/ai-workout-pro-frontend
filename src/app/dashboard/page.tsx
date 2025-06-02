@@ -39,17 +39,6 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-      return
-    }
-
-    if (user?.id) {
-      loadDashboardData()
-    }
-  }, [user, authLoading, router, loadDashboardData])
-
   // Helper functions to convert between Firestore and component data formats
   const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => ({
     id: firestoreSession.id,
@@ -111,6 +100,17 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+
+    if (user?.id) {
+      loadDashboardData()
+    }
+  }, [user, authLoading, router, loadDashboardData])
 
   // Calculate statistics
   const now = new Date()

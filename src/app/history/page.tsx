@@ -16,17 +16,6 @@ export default function HistoryPage() {
   const [filter, setFilter] = useState<'all' | 'completed' | 'rated'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'rating'>('date')
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-      return
-    }
-
-    if (user?.id) {
-      loadHistory()
-    }
-  }, [user, authLoading, router, loadHistory])
-
   // Helper function to convert Firestore session to component format
   const convertFirestoreSessionToComponent = (firestoreSession: import('@/lib/firestore').WorkoutSession): WorkoutSession => ({
     id: firestoreSession.id,
@@ -57,6 +46,17 @@ export default function HistoryPage() {
       setLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+
+    if (user?.id) {
+      loadHistory()
+    }
+  }, [user, authLoading, router, loadHistory])
 
   const updateRating = async (sessionId: string, rating: number) => {
     try {
