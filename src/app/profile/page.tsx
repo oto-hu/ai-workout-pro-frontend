@@ -15,17 +15,6 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-      return
-    }
-
-    if (user?.id) {
-      loadProfile()
-    }
-  }, [user, authLoading, router, loadProfile])
-
   // Helper function to convert Firestore profile to component format
   const convertFirestoreProfileToComponent = (firestoreProfile: import('@/lib/firestore').UserProfile): UserProfile => ({
     id: firestoreProfile.userId,
@@ -56,6 +45,17 @@ export default function ProfilePage() {
       setLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+
+    if (user?.id) {
+      loadProfile()
+    }
+  }, [user, authLoading, router, loadProfile])
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
