@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[DEBUG] OpenAI API call initiated:', {
       model: process.env.AI_MODEL || 'o4-mini-2025-04-16',
-      maxTokens: parseInt(process.env.MAX_TOKENS || '2000'),
+      maxTokens: parseInt(process.env.MAX_TOKENS || '4000'),
       temperature: parseFloat(process.env.TEMPERATURE || '1'),
       promptLength: prompt.length,
       requestData: {
