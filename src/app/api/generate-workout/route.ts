@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         }
       ],
       max_completion_tokens: parseInt(process.env.MAX_TOKENS || '2000'),
-      temperature: parseFloat(process.env.TEMPERATURE || '0.7'),
+      temperature: parseFloat(process.env.TEMPERATURE || '1'),
       response_format: { type: 'json_object' }
     });
 
