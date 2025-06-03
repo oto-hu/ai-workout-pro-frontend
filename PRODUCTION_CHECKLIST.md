@@ -1,221 +1,285 @@
-# Production Deployment Checklist - AI Workout Pro
+# Firebase Production Deployment Checklist - AI Workout Pro
 
-## 📋 Pre-Deployment Verification
+## 📋 Pre-Deployment Checklist
 
-### Environment Variables
-- [ ] **NEXT_PUBLIC_BASE_URL**: Set to production domain (e.g., `https://ai-workout-pro.com`)
-- [ ] **NEXTAUTH_URL**: Set to production domain (e.g., `https://ai-workout-pro.com`)
-- [ ] **NEXTAUTH_SECRET**: Generate secure random string (min 32 characters)
-- [ ] **AUTH_SECRET**: Generate secure random string (min 32 characters)
+### Environment Variables Verification
+- [ ] **NEXT_PUBLIC_FIREBASE_API_KEY**: Firebase project API key
+- [ ] **NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN**: Firebase Auth domain (project-id.firebaseapp.com)
+- [ ] **NEXT_PUBLIC_FIREBASE_PROJECT_ID**: Firebase project ID
+- [ ] **NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET**: Firebase storage bucket
+- [ ] **NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID**: Firebase messaging sender ID
+- [ ] **NEXT_PUBLIC_FIREBASE_APP_ID**: Firebase app ID
+- [ ] **NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID**: Google Analytics measurement ID (optional)
 
-### Authentication & OAuth
-- [ ] **Google OAuth**: Update authorized origins and redirect URIs in Google Cloud Console
-  - Authorized JavaScript origins: `https://yourdomain.com`
-  - Authorized redirect URIs: `https://yourdomain.com/api/auth/callback/google`
-- [ ] **GitHub OAuth**: Update authorized callback URLs in GitHub App settings
-  - Callback URL: `https://yourdomain.com/api/auth/callback/github`
-- [ ] **GOOGLE_CLIENT_ID**: Set production Google OAuth client ID
-- [ ] **GOOGLE_CLIENT_SECRET**: Set production Google OAuth client secret
-- [ ] **GITHUB_CLIENT_ID**: Set production GitHub OAuth client ID
-- [ ] **GITHUB_CLIENT_SECRET**: Set production GitHub OAuth client secret
+### AI Service Configuration
+- [ ] **OPENAI_API_KEY**: OpenAI API key for workout generation
+- [ ] **ANTHROPIC_API_KEY**: Anthropic API key (if using Claude)
+- [ ] **AI_MODEL**: Configured AI model (default: gpt-4)
+- [ ] **AI_TEMPERATURE**: AI temperature setting (0.7 recommended)
+- [ ] **AI_MAX_TOKENS**: Token limit for AI responses (2000 recommended)
 
-### Database & Supabase
-- [ ] **NEXT_PUBLIC_SUPABASE_URL**: Set production Supabase project URL
-- [ ] **NEXT_PUBLIC_SUPABASE_ANON_KEY**: Set production Supabase anon key
-- [ ] **SUPABASE_SERVICE_ROLE_KEY**: Set production Supabase service role key
-- [ ] **Database Schema**: Deploy all tables and RLS policies from SUPABASE_SCHEMA.md
-- [ ] **Supabase Auth**: Configure OAuth providers in Supabase dashboard
-- [ ] **Row Level Security**: Verify all RLS policies are enabled and working
+### Build and Type Checking
+- [ ] Run `npm run type-check` - verify TypeScript compilation
+- [ ] Run `npm run lint` - ensure ESLint passes with no warnings
+- [ ] Run `npm run test` - verify all tests pass
+- [ ] Run `npm run build` - ensure Next.js static build succeeds
+- [ ] Verify `out/` directory contains static files
 
-### AI Services
-- [ ] **OPENAI_API_KEY**: Set production OpenAI API key
-- [ ] **ANTHROPIC_API_KEY**: Set production Anthropic API key (if using)
-- [ ] **AI_MODEL**: Configure optimal model for production (default: `gpt-4`)
-- [ ] **MAX_TOKENS**: Set production token limit (recommended: `2000`)
-- [ ] **TEMPERATURE**: Set AI temperature (recommended: `0.7`)
-- [ ] **Rate Limits**: Configure appropriate rate limits for production traffic
+### Security Rules Validation
+- [ ] Review `firestore.rules` for proper user access controls
+- [ ] Test Firestore security rules with Firebase emulator
+- [ ] Ensure all collections have proper userId-based restrictions
+- [ ] Verify no data leakage between users
 
-### Security Configuration
-- [ ] **CORS Settings**: Verify middleware.ts allows only production domains
-- [ ] **CSP Headers**: Configure Content Security Policy headers
-- [ ] **Environment Variables**: Remove any development/test variables
-- [ ] **API Routes**: Verify rate limiting is properly configured
-- [ ] **Input Validation**: Ensure all API endpoints have proper validation
-- [ ] **Error Handling**: Verify no sensitive information is exposed in error messages
+## 🔥 Firebase-Specific Setup
 
-### Performance Optimization
-- [ ] **Next.js Build**: Run `npm run build` to generate optimized production build
-- [ ] **Static Assets**: Configure CDN for static assets (optional)
-- [ ] **Image Optimization**: Verify Next.js Image component is used
-- [ ] **Bundle Analysis**: Run bundle analyzer to check for optimization opportunities
-- [ ] **Caching**: Configure appropriate cache headers
+### Firebase Project Configuration
+- [ ] **Create Firebase Project**: Set up new project in Firebase Console
+- [ ] **Enable Authentication**: Enable Email/Password provider
+- [ ] **Enable Google Sign-in**: Configure OAuth consent screen and credentials
+- [ ] **Enable GitHub Sign-in**: Configure GitHub OAuth app
+- [ ] **Enable Firestore**: Create Firestore database in production mode
+- [ ] **Enable Firebase Hosting**: Initialize hosting for static site deployment
+- [ ] **Configure Firebase Analytics**: Enable Analytics (optional)
 
-## 🚀 Deployment Steps
+### Authentication Providers Setup
+- [ ] **Email/Password**: 
+  - Configure email templates (verification, password reset)
+  - Set authorized domains for production
+- [ ] **Google OAuth**:
+  - Add production domain to authorized origins
+  - Configure OAuth consent screen
+  - Add authorized redirect URIs
+- [ ] **GitHub OAuth**:
+  - Create GitHub OAuth App
+  - Set authorization callback URL to Firebase Auth
+  - Configure client ID and secret in Firebase Console
 
-### 1. Domain & SSL
-- [ ] **Domain Configuration**: Point domain to hosting provider
-- [ ] **SSL Certificate**: Ensure HTTPS is enabled
-- [ ] **DNS Records**: Configure A/CNAME records
+### Firestore Database Setup
+- [ ] **Deploy Security Rules**: `firebase deploy --only firestore:rules`
+- [ ] **Deploy Indexes**: `firebase deploy --only firestore:indexes`
+- [ ] **Create Collections Structure**:
+  - `/users/{userId}` - User profiles
+  - `/userProfiles/{userId}` - Extended user data
+  - `/workoutSessions/{sessionId}` - Workout history
+  - `/favoriteWorkouts/{favoriteId}` - Saved workouts
+- [ ] **Test Security Rules**: Verify user isolation and proper access controls
 
-### 2. Hosting Platform Setup
-- [ ] **Vercel** (Recommended):
-  - Connect GitHub repository
-  - Set environment variables in Vercel dashboard
-  - Configure custom domain
-- [ ] **Alternative Platforms**:
-  - Configure Node.js environment
-  - Set production environment variables
-  - Configure process manager (PM2, etc.)
+### Environment Variables for Firebase Config
+```bash
+# Add to production environment
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+OPENAI_API_KEY=your_openai_key
+```
 
-### 3. Environment Variables Deployment
-- [ ] Copy production environment variables to hosting platform
-- [ ] Verify all required variables are set
-- [ ] Test database connections
-- [ ] Test OAuth providers
+## 🏗️ Build and Deployment Process
 
-### 4. Database Migration
-- [ ] **Supabase Production Setup**:
-  - Create production Supabase project
-  - Run SQL scripts from SUPABASE_SCHEMA.md
-  - Configure RLS policies
-  - Set up authentication providers
-- [ ] **Data Migration** (if applicable):
-  - Export development data
-  - Import to production database
-  - Verify data integrity
+### Static Build Verification
+- [ ] **Install Dependencies**: `npm install`
+- [ ] **Type Check**: `npm run type-check`
+- [ ] **Lint Check**: `npm run lint`
+- [ ] **Build Static Site**: `npm run build`
+- [ ] **Verify Output**: Check `out/` directory contains all static files
+- [ ] **Test Local Build**: Serve `out/` directory locally and test functionality
 
-### 5. Testing & Validation
-- [ ] **Functionality Testing**:
-  - User registration/login
-  - OAuth authentication (Google, GitHub)
-  - Workout generation
-  - Favorite workouts
-  - User profiles
-- [ ] **Performance Testing**:
-  - Page load times
-  - AI generation response times
-  - Database query performance
-- [ ] **Security Testing**:
-  - Authentication flows
-  - Authorization checks
-  - Input validation
-  - Rate limiting
+### Firebase CLI Setup and Deployment
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
 
-## 📊 Monitoring & Analytics
+# Login to Firebase
+firebase login
 
-### Application Monitoring
-- [ ] **Error Tracking**: Set up Sentry or similar service
-- [ ] **Performance Monitoring**: Configure performance metrics
-- [ ] **Health Checks**: Implement health check endpoints
-- [ ] **Logging**: Configure structured logging
+# Initialize project (if not done)
+firebase init
 
-### Analytics
-- [ ] **Google Analytics**: Set up GA4 tracking (optional)
-- [ ] **User Analytics**: Track user engagement metrics
-- [ ] **API Usage**: Monitor AI API usage and costs
+# Deploy to Firebase Hosting
+firebase deploy --only hosting
 
-### Alerts
-- [ ] **Error Alerts**: Set up error rate alerts
-- [ ] **Performance Alerts**: Set up response time alerts
-- [ ] **Uptime Monitoring**: Configure uptime checks
+# Deploy Firestore rules and indexes
+firebase deploy --only firestore
 
-## 🔒 Security Hardening
+# Deploy everything
+firebase deploy
+```
 
-### Headers & Policies
-- [ ] **Security Headers**: Configure HSTS, CSP, X-Frame-Options
-- [ ] **CORS Policy**: Restrict to production domains only
-- [ ] **Rate Limiting**: Production-appropriate rate limits
+### Deployment Commands
+- [ ] **Install Firebase CLI**: `npm install -g firebase-tools`
+- [ ] **Authenticate**: `firebase login`
+- [ ] **Deploy Hosting**: `firebase deploy --only hosting`
+- [ ] **Deploy Firestore**: `firebase deploy --only firestore`
+- [ ] **Full Deployment**: `firebase deploy`
 
-### Secrets Management
-- [ ] **Environment Variables**: All secrets in environment variables
-- [ ] **API Keys**: Secure storage and rotation policy
-- [ ] **Database Credentials**: Secure connection strings
+### Custom Domain Setup
+- [ ] **Add Custom Domain**: Configure in Firebase Console → Hosting
+- [ ] **Verify Domain Ownership**: Complete domain verification process
+- [ ] **DNS Configuration**: Update DNS records as instructed
+- [ ] **SSL Certificate**: Firebase automatically provisions SSL certificates
 
-### Access Control
-- [ ] **Supabase RLS**: Verify all policies are correctly configured
-- [ ] **Admin Access**: Configure admin user management
-- [ ] **Audit Logging**: Enable database audit logs
+## ✅ Post-Deployment Verification
 
-## 📈 Performance Optimization
+### Authentication Flow Testing
+- [ ] **Email/Password Registration**: Test new user signup
+- [ ] **Email/Password Login**: Test existing user login
+- [ ] **Google OAuth**: Test Google sign-in flow
+- [ ] **GitHub OAuth**: Test GitHub sign-in flow
+- [ ] **Password Reset**: Test password reset functionality
+- [ ] **Email Verification**: Test email verification process
 
-### Frontend
-- [ ] **Code Splitting**: Verify dynamic imports are working
-- [ ] **Image Optimization**: Optimize all images
-- [ ] **Font Loading**: Optimize web font loading
-- [ ] **Bundle Size**: Monitor and optimize bundle size
+### Database Connectivity Verification
+- [ ] **User Profile Creation**: Verify new user data is saved to Firestore
+- [ ] **Workout Session Saving**: Test workout history storage
+- [ ] **Favorite Workouts**: Test save/remove favorite functionality
+- [ ] **Data Isolation**: Verify users can only access their own data
+- [ ] **Real-time Updates**: Test Firestore real-time listeners
 
-### Backend
-- [ ] **Database Indexing**: Verify all necessary indexes
-- [ ] **Query Optimization**: Optimize slow queries
-- [ ] **Caching Strategy**: Implement appropriate caching
-- [ ] **AI Caching**: Enable AI response caching
+### AI Workout Generation Testing
+- [ ] **OpenAI Integration**: Test workout generation with different parameters
+- [ ] **Error Handling**: Test AI service error scenarios
+- [ ] **Rate Limiting**: Verify API rate limits are working
+- [ ] **Response Validation**: Test AI response parsing and validation
+- [ ] **Fallback Mechanisms**: Test backup AI models or cached responses
 
-### CDN & Assets
-- [ ] **Static Assets**: Configure CDN for static files
-- [ ] **API Caching**: Set up appropriate API caching
-- [ ] **Compression**: Enable gzip/brotli compression
+### Performance and Security Checks
+- [ ] **Page Load Performance**: Test initial page load times (< 3 seconds)
+- [ ] **Firebase Auth Performance**: Test authentication response times
+- [ ] **Firestore Query Performance**: Test database query response times
+- [ ] **Security Headers**: Verify proper security headers are set
+- [ ] **HTTPS Enforcement**: Ensure all traffic uses HTTPS
+- [ ] **Content Security Policy**: Verify CSP headers are properly configured
 
-## 🚨 Backup & Recovery
+## 📊 Monitoring and Maintenance
 
-### Database Backup
-- [ ] **Automated Backups**: Configure Supabase daily backups
-- [ ] **Backup Testing**: Test restore procedures
-- [ ] **Point-in-time Recovery**: Verify PITR is available
+### Firebase Analytics Setup
+- [ ] **Enable Analytics**: Configure Google Analytics in Firebase Console
+- [ ] **Custom Events**: Implement workout generation tracking
+- [ ] **User Engagement**: Track user session duration and feature usage
+- [ ] **Conversion Tracking**: Monitor signup and workout completion rates
 
-### Application Backup
-- [ ] **Code Repository**: Ensure all code is in version control
-- [ ] **Configuration Backup**: Document all configuration settings
-- [ ] **Environment Setup**: Document deployment procedures
+### Error Monitoring
+- [ ] **Firebase Crashlytics**: Enable crash reporting for production issues
+- [ ] **Console Error Tracking**: Monitor JavaScript errors in Firebase Console
+- [ ] **Authentication Errors**: Track failed login attempts and issues
+- [ ] **API Error Monitoring**: Monitor AI service failures and timeouts
 
-## 📋 Post-Deployment
+### Performance Monitoring
+- [ ] **Firebase Performance**: Enable performance monitoring
+- [ ] **Web Vitals**: Monitor Core Web Vitals metrics
+- [ ] **Database Performance**: Monitor Firestore read/write patterns
+- [ ] **Hosting Performance**: Track static asset delivery performance
 
-### Verification
-- [ ] **All Features Working**: Test all application features
-- [ ] **Performance Metrics**: Verify performance meets targets
-- [ ] **Error Rates**: Monitor error rates and fix issues
-- [ ] **User Feedback**: Monitor user feedback and issues
+### Backup and Recovery Procedures
+- [ ] **Firestore Backup**: Enable automatic Firestore backups
+- [ ] **Authentication Backup**: Export user authentication data
+- [ ] **Code Repository**: Ensure all code is version-controlled
+- [ ] **Configuration Backup**: Document all Firebase project settings
+- [ ] **Recovery Testing**: Test data recovery procedures
+
+## 🛠️ Troubleshooting Common Issues
+
+### Firebase Deployment Errors
+- [ ] **Build Failures**: 
+  - Check TypeScript compilation errors
+  - Verify all dependencies are installed
+  - Ensure environment variables are set
+- [ ] **Hosting Deploy Errors**:
+  - Verify `firebase.json` configuration
+  - Check `out/` directory exists and contains files
+  - Ensure Firebase CLI is authenticated
+- [ ] **Firestore Rules Deployment**:
+  - Validate rules syntax
+  - Test rules with Firebase emulator
+  - Check for conflicting security rules
+
+### Authentication Issues
+- [ ] **OAuth Configuration**:
+  - Verify authorized domains in Firebase Console
+  - Check OAuth provider credentials
+  - Ensure redirect URIs match exactly
+- [ ] **Email Authentication**:
+  - Verify email templates are configured
+  - Check spam folders for verification emails
+  - Ensure authorized domains include production domain
+
+### Firestore Permission Problems
+- [ ] **Security Rules Debug**:
+  - Use Firebase Console rules simulator
+  - Check user authentication status
+  - Verify document ownership patterns
+- [ ] **Data Access Issues**:
+  - Confirm user IDs match between Auth and Firestore
+  - Check collection and document path structure
+  - Verify real-time listener configuration
+
+### Build and Static Export Issues
+- [ ] **Next.js Export Problems**:
+  - Verify `output: 'export'` in `next.config.ts`
+  - Check for server-side only code in client components
+  - Ensure all images have `unoptimized: true`
+- [ ] **Routing Issues**:
+  - Configure `trailingSlash: true` for static hosting
+  - Verify Firebase hosting rewrites configuration
+  - Test all routes after deployment
+
+### Performance Issues
+- [ ] **Slow AI Generation**:
+  - Monitor OpenAI API response times
+  - Implement response caching
+  - Add loading states and progress indicators
+- [ ] **Firestore Query Performance**:
+  - Create appropriate database indexes
+  - Optimize query patterns
+  - Implement pagination for large datasets
+
+## 📋 Production Readiness Checklist
+
+### Final Verification
+- [ ] All environment variables configured and tested
+- [ ] Firebase project properly configured with all services
+- [ ] Security rules tested and validated
+- [ ] Authentication flows working correctly
+- [ ] AI workout generation functioning properly
+- [ ] Performance metrics meet requirements (< 3 second load times)
+- [ ] Error monitoring and analytics configured
+- [ ] Backup procedures documented and tested
+- [ ] Custom domain configured with SSL
+- [ ] Team has access to production Firebase project
 
 ### Documentation
-- [ ] **Production URLs**: Document all production URLs
-- [ ] **Contact Information**: Update support contact information
-- [ ] **Maintenance Procedures**: Document maintenance procedures
-- [ ] **Rollback Plan**: Prepare rollback procedures
+- [ ] **Production URLs**: Document Firebase Hosting URL and custom domain
+- [ ] **Firebase Project Details**: Document project ID and configuration
+- [ ] **Environment Variables**: Secure documentation of all required variables
+- [ ] **Deployment Procedures**: Step-by-step deployment guide
+- [ ] **Rollback Procedures**: Document how to revert deployments
+- [ ] **Monitoring Access**: Team access to Firebase Console and Analytics
 
-### Team Notification
-- [ ] **Stakeholder Notification**: Notify stakeholders of successful deployment
-- [ ] **Team Access**: Ensure team has production access
-- [ ] **Support Documentation**: Provide support team with troubleshooting guides
-
-## 🛠 Maintenance & Updates
-
-### Regular Tasks
-- [ ] **Dependency Updates**: Schedule regular dependency updates
-- [ ] **Security Patches**: Monitor and apply security patches
-- [ ] **Performance Monitoring**: Regular performance reviews
-- [ ] **Backup Verification**: Regular backup testing
-
-### Scaling Considerations
-- [ ] **Traffic Monitoring**: Monitor traffic patterns
-- [ ] **Resource Usage**: Monitor CPU, memory, and database usage
-- [ ] **Auto-scaling**: Configure auto-scaling if needed
-- [ ] **Load Testing**: Regular load testing
+### Team Handoff
+- [ ] **Production Access**: Ensure team members have appropriate Firebase roles
+- [ ] **Monitoring Setup**: Configure alerts and notification channels
+- [ ] **Support Documentation**: Provide troubleshooting guides
+- [ ] **Emergency Contacts**: Document Firebase support and escalation procedures
 
 ---
-
-## 📞 Emergency Contacts
-
-- **Development Team**: [Add contact information]
-- **Infrastructure Team**: [Add contact information]
-- **Database Administrator**: [Add contact information]
-- **Security Team**: [Add contact information]
 
 ## 🔗 Important Links
 
-- **Production App**: [Add production URL]
-- **Supabase Dashboard**: [Add Supabase project URL]
-- **Monitoring Dashboard**: [Add monitoring URL]
-- **Error Tracking**: [Add error tracking URL]
+- **Firebase Console**: https://console.firebase.google.com/project/your-project-id
+- **Production App**: https://your-domain.com
+- **Firebase Hosting URL**: https://your-project-id.web.app
+- **Analytics Dashboard**: Firebase Console → Analytics
+- **Performance Monitoring**: Firebase Console → Performance
+
+## 📞 Emergency Contacts
+
+- **Firebase Support**: https://firebase.google.com/support/
+- **Development Team**: [Add team contact information]
+- **Project Owner**: [Add owner contact information]
 
 ---
 
-**Note**: This checklist should be reviewed and updated regularly to reflect changes in the application architecture and deployment procedures.
+**Note**: This checklist is specifically tailored for Firebase deployment of the AI Workout Pro Next.js application. Review and update regularly as the application evolves.
