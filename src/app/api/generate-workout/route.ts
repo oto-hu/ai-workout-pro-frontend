@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     // Call OpenAI API
     const completion = await openai.chat.completions.create({
-      model: process.env.AI_MODEL || 'gpt-4',
+      model: process.env.AI_MODEL || 'o4-mini-2025-04-16',
       messages: [
         {
           role: 'system',
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
           content: prompt
         }
       ],
-      max_tokens: parseInt(process.env.MAX_TOKENS || '2000'),
+      max_completion_tokens: parseInt(process.env.MAX_TOKENS || '2000'),
       temperature: parseFloat(process.env.TEMPERATURE || '0.7'),
       response_format: { type: 'json_object' }
     });
