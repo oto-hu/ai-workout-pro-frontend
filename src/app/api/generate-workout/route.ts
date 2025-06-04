@@ -113,12 +113,90 @@ function validateWorkoutRequest(body: unknown): { valid: boolean; error?: string
   return { valid: true };
 }
 
+// Japanese to English exercise name mapping
+function translateExerciseName(japaneseExerciseName: string): string {
+  const exerciseTranslations: Record<string, string> = {
+    // 胸筋系
+    'プッシュアップ': 'push up',
+    'ダンベルプレス': 'dumbbell press',
+    'ダンベルフライ': 'dumbbell fly',
+    'チェストプレス': 'chest press',
+    
+    // 背筋系
+    'プルアップ': 'pull up',
+    'ラットプルダウン': 'lat pulldown',
+    'バックエクステンション': 'back extension',
+    'デッドリフト': 'deadlift',
+    'ローイング': 'rowing',
+    
+    // 肩系
+    'ショルダープレス': 'shoulder press',
+    'ラテラルレイズ': 'lateral raise',
+    'フロントレイズ': 'front raise',
+    'リアデルトフライ': 'rear delt fly',
+    
+    // 腕系
+    'ダンベルカール': 'dumbbell curl',
+    'トライセプスエクステンション': 'triceps extension',
+    'ハンマーカール': 'hammer curl',
+    'ディップス': 'dips',
+    
+    // 腹筋系
+    'プランク': 'plank',
+    'シットアップ': 'sit up',
+    'クランチ': 'crunch',
+    'レッグレイズ': 'leg raise',
+    'マウンテンクライマー': 'mountain climber',
+    
+    // 脚系
+    'スクワット': 'squat',
+    'ランジ': 'lunge',
+    'カーフレイズ': 'calf raise',
+    'ヒップブリッジ': 'hip bridge',
+    'レッグプレス': 'leg press',
+    'デッドリフト': 'deadlift',
+    
+    // 全身系
+    'バーピー': 'burpee',
+    'ジャンピングジャック': 'jumping jack',
+    'ハイニー': 'high knee',
+    
+    // その他
+    'ストレッチ': 'stretch',
+    'ウォーミングアップ': 'warm up',
+    'クールダウン': 'cool down'
+  };
+
+  // 完全一致を試す
+  const exactMatch = exerciseTranslations[japaneseExerciseName];
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  // 部分一致を試す（キーワードベース）
+  for (const [japanese, english] of Object.entries(exerciseTranslations)) {
+    if (japaneseExerciseName.includes(japanese)) {
+      return english;
+    }
+  }
+
+  // 翻訳が見つからない場合は、日本語を除去して安全な英語フレーズに変換
+  console.warn('[WARN] No translation found for exercise:', japaneseExerciseName);
+  return 'strength training exercise';
+}
+
 async function generateExerciseImage(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
   try {
+    // 日本語エクササイズ名を英語に変換
+    const englishExerciseName = translateExerciseName(exerciseName);
     const muscleGroups = targetMuscles.join(', ');
-    const prompt = `fitness illustration showing proper ${exerciseName} form, demonstrating ${muscleGroups} muscles, anatomical diagram style, clean white background, professional fitness guide illustration, side view showing correct posture, no text overlay`;
+    const prompt = `fitness illustration showing proper ${englishExerciseName} form, demonstrating ${muscleGroups} muscles, anatomical diagram style, clean white background, professional fitness guide illustration, side view showing correct posture, no text overlay`;
     
-    console.log('[DEBUG] Generating DALL-E 3 image for:', { exerciseName, prompt: prompt.substring(0, 100) + '...' });
+    console.log('[DEBUG] Generating DALL-E 3 image for:', { 
+      originalName: exerciseName,
+      translatedName: englishExerciseName,
+      prompt: prompt.substring(0, 100) + '...' 
+    });
     
     const imageResponse = await openai.images.generate({
       model: "dall-e-3",
@@ -129,7 +207,7 @@ async function generateExerciseImage(exerciseName: string, targetMuscles: string
     });
 
     if (imageResponse.data && imageResponse.data.length > 0 && imageResponse.data[0].url) {
-      console.log('[DEBUG] DALL-E 3 image generated successfully for:', exerciseName);
+      console.log('[DEBUG] DALL-E 3 image generated successfully for:', exerciseName, '(translated as:', englishExerciseName + ')');
       return imageResponse.data[0].url;
     } else {
       console.warn('[WARN] DALL-E 3 response missing image URL for:', exerciseName);
@@ -139,7 +217,10 @@ async function generateExerciseImage(exerciseName: string, targetMuscles: string
     console.error('[ERROR] DALL-E 3 image generation failed for', exerciseName, ':', {
       error,
       message: (error as Error)?.message,
-      name: (error as Error)?.name
+      name: (error as Error)?.name,
+      code: (error as any)?.code,
+      type: (error as any)?.type,
+      status: (error as any)?.status
     });
     return null;
   }
