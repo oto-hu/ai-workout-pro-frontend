@@ -207,17 +207,20 @@ export default function WorkoutResultPage() {
                           className="w-full h-full object-cover rounded-xl"
                           loading="lazy"
                           onError={(e) => {
-                            // Fallback to placeholder if image fails to load
+                            // Show placeholder if DALL-E image fails to load
                             e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            const placeholder = e.currentTarget.parentElement?.querySelector('.exercise-placeholder');
+                            if (placeholder) {
+                              placeholder.classList.remove('hidden');
+                            }
                           }}
                         />
                       ) : null}
-                      <div className={`flex items-center justify-center h-full ${exercise.imageUrl ? 'hidden' : ''}`}>
+                      <div className={`exercise-placeholder flex items-center justify-center h-full ${exercise.imageUrl ? 'hidden' : ''}`}>
                         <div className="text-center">
                           <div className="text-4xl mb-2">🏃‍♂️</div>
                           <p className="text-sm text-gray-600">
-                            {exercise.imageUrl ? '画像を読み込み中...' : 'エクササイズ図解'}
+                            エクササイズ図解
                           </p>
                         </div>
                       </div>
