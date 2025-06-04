@@ -97,7 +97,8 @@ export class WorkoutGenerator {
    */
   private convertAIResponseToWorkoutMenu(
     aiResponse: AIWorkoutResponse,
-    selectedBodyParts: string[]
+    selectedBodyParts: string[],
+    isAIGenerated: boolean = true
   ): WorkoutMenu {
     const exercises: Exercise[] = aiResponse.exercises.map((aiExercise: AIExercise, index: number) => ({
       id: `ai-exercise-${index}`,
@@ -119,7 +120,9 @@ export class WorkoutGenerator {
     return {
       id: `ai-workout-${Date.now()}`,
       title: aiResponse.workoutTitle,
-      description: `AIが生成したパーソナライズドワークアウト`,
+      description: isAIGenerated 
+        ? `AIが生成したパーソナライズドワークアウト`
+        : `${aiResponse.workoutTitle} (AI生成に失敗したため、代替メニューを表示しています)`,
       targetBodyParts: selectedBodyParts,
       exercises,
       totalDuration,
@@ -174,7 +177,7 @@ export class WorkoutGenerator {
       
       onProgress?.(80, 'AI生成完了、メニューを最適化中...');
       
-      const workoutMenu = this.convertAIResponseToWorkoutMenu(aiResponse, selectedBodyParts);
+      const workoutMenu = this.convertAIResponseToWorkoutMenu(aiResponse, selectedBodyParts, true);
       
       onProgress?.(100, 'メニュー生成完了！');
       
@@ -283,7 +286,7 @@ export class WorkoutGenerator {
       const aiResponse = await aiClient.generateWorkout(baseRequest);
       onProgress?.(90, 'メニューを最適化中...');
       
-      const workoutMenu = this.convertAIResponseToWorkoutMenu(aiResponse, selectedBodyParts);
+      const workoutMenu = this.convertAIResponseToWorkoutMenu(aiResponse, selectedBodyParts, true);
       onProgress?.(100, '新しいメニュー生成完了！');
       
       return workoutMenu;
