@@ -130,7 +130,43 @@ function validateWorkoutRequest(body: unknown): { valid: boolean; error?: string
     return { valid: false, error: 'goals is required and must be a non-empty array' };
   }
 
+  if (bodyObj.generateImages !== undefined && typeof bodyObj.generateImages !== 'boolean') {
+    return { valid: false, error: 'generateImages must be a boolean' };
+  }
+
   return { valid: true };
+}
+
+async function generateExerciseImage(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
+  try {
+    const muscleGroups = targetMuscles.join(', ');
+    const prompt = `fitness illustration showing proper ${exerciseName} form, demonstrating ${muscleGroups} muscles, anatomical diagram style, clean white background, professional fitness guide illustration, side view showing correct posture, no text overlay`;
+    
+    console.log('[DEBUG] Generating DALL-E 3 image for:', { exerciseName, prompt: prompt.substring(0, 100) + '...' });
+    
+    const imageResponse = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      size: "1024x1024",
+      quality: "standard",
+      n: 1,
+    });
+
+    if (imageResponse.data && imageResponse.data.length > 0 && imageResponse.data[0].url) {
+      console.log('[DEBUG] DALL-E 3 image generated successfully for:', exerciseName);
+      return imageResponse.data[0].url;
+    } else {
+      console.warn('[WARN] DALL-E 3 response missing image URL for:', exerciseName);
+      return null;
+    }
+  } catch (error: unknown) {
+    console.error('[ERROR] DALL-E 3 image generation failed for', exerciseName, ':', {
+      error,
+      message: (error as Error)?.message,
+      name: (error as Error)?.name
+    });
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -394,6 +430,35 @@ export async function POST(request: NextRequest) {
       workoutTitle: aiResponse.workoutTitle,
       estimatedTime: aiResponse.estimatedTime
     });
+
+    // Generate images for exercises if requested
+    if (workoutRequest.generateImages) {
+      console.log('[DEBUG] Starting DALL-E 3 image generation for exercises...');
+      
+      // Generate images in parallel for better performance
+      const imagePromises = aiResponse.exercises.map(async (exercise, index) => {
+        try {
+          const imageUrl = await generateExerciseImage(exercise.name, exercise.targetMuscles);
+          if (imageUrl) {
+            exercise.imageUrl = imageUrl;
+            console.log(`[DEBUG] Image generated for exercise ${index + 1}/${aiResponse.exercises.length}: ${exercise.name}`);
+          } else {
+            console.warn(`[WARN] No image generated for exercise: ${exercise.name}`);
+          }
+        } catch (error) {
+          console.error(`[ERROR] Failed to generate image for exercise: ${exercise.name}`, error);
+        }
+      });
+
+      // Wait for all image generation to complete (with timeout)
+      try {
+        await Promise.all(imagePromises);
+        console.log('[DEBUG] All exercise images processed');
+      } catch (error) {
+        console.error('[ERROR] Some exercise image generations failed:', error);
+        // Continue with partial results
+      }
+    }
 
     // Return successful response with rate limit headers
     return NextResponse.json(aiResponse, {
