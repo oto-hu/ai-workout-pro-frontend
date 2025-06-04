@@ -60,6 +60,7 @@ export interface WorkoutRequest {
   goals: string[];
   limitations?: string[];
   userPreferences?: UserPreferences;
+  generateImages?: boolean; // Option to enable/disable DALL-E 3 image generation
 }
 
 export interface AIExercise {
@@ -72,6 +73,7 @@ export interface AIExercise {
   instructions: string[];
   tips: string;
   safetyNotes: string;
+  imageUrl?: string; // DALL-E 3 generated image URL
 }
 
 export interface AIWorkoutResponse {

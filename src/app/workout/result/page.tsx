@@ -197,12 +197,29 @@ export default function WorkoutResultPage() {
             {workoutMenu.exercises.map((exercise, index) => (
               <div key={exercise.id} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex flex-col lg:flex-row gap-6">
-                  {/* Exercise Image/Video Placeholder */}
+                  {/* Exercise Image */}
                   <div className="lg:w-1/3">
-                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">🏃‍♂️</div>
-                        <p className="text-sm text-gray-600">動画プレースホルダー</p>
+                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden">
+                      {exercise.imageUrl ? (
+                        <img
+                          src={exercise.imageUrl}
+                          alt={`${exercise.name}のフォーム図解`}
+                          className="w-full h-full object-cover rounded-xl"
+                          loading="lazy"
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`flex items-center justify-center h-full ${exercise.imageUrl ? 'hidden' : ''}`}>
+                        <div className="text-center">
+                          <div className="text-4xl mb-2">🏃‍♂️</div>
+                          <p className="text-sm text-gray-600">
+                            {exercise.imageUrl ? '画像を読み込み中...' : 'エクササイズ図解'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>

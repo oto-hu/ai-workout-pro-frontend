@@ -64,7 +64,7 @@ export class WorkoutGenerator {
   /**
    * Create a workout request from selected body parts and user preferences
    */
-  private createWorkoutRequest(selectedBodyParts: string[]): WorkoutRequest {
+  private createWorkoutRequest(selectedBodyParts: string[], options?: { generateImages?: boolean }): WorkoutRequest {
     const userPrefs = this.getUserPreferences();
     
     const defaultRequest: WorkoutRequest = {
@@ -72,7 +72,8 @@ export class WorkoutGenerator {
       fitnessLevel: 'beginner',
       duration: 30,
       equipment: ['bodyweight'],
-      goals: ['fitness']
+      goals: ['fitness'],
+      generateImages: options?.generateImages ?? false
     };
 
     if (!userPrefs) {
@@ -86,7 +87,8 @@ export class WorkoutGenerator {
       equipment: userPrefs.availableEquipment,
       goals: userPrefs.goals,
       limitations: userPrefs.limitations,
-      userPreferences: userPrefs
+      userPreferences: userPrefs,
+      generateImages: options?.generateImages ?? false
     };
   }
 
@@ -107,7 +109,7 @@ export class WorkoutGenerator {
       instructions: aiExercise.instructions,
       tips: [aiExercise.tips],
       targetMuscles: aiExercise.targetMuscles,
-      imageUrl: `/images/exercises/ai-generated-${index}.jpg` // Placeholder
+      imageUrl: aiExercise.imageUrl // Use DALL-E 3 generated image URL if available
     }));
 
     // Parse calories and duration
@@ -153,7 +155,8 @@ export class WorkoutGenerator {
    */
   async generateWorkout(
     selectedBodyParts: string[],
-    onProgress?: (progress: number, message: string) => void
+    onProgress?: (progress: number, message: string) => void,
+    options?: { generateImages?: boolean }
   ): Promise<WorkoutMenu> {
     if (selectedBodyParts.length === 0) {
       throw new Error('少なくとも1つの部位を選択してください。');
@@ -161,7 +164,7 @@ export class WorkoutGenerator {
 
     onProgress?.(10, 'ユーザー設定を読み込み中...');
 
-    const workoutRequest = this.createWorkoutRequest(selectedBodyParts);
+    const workoutRequest = this.createWorkoutRequest(selectedBodyParts, options);
     
     onProgress?.(20, 'AIに最適なメニューを依頼中...');
 
@@ -202,16 +205,27 @@ export class WorkoutGenerator {
    */
   async generateWorkoutWithStreaming(
     selectedBodyParts: string[],
-    onProgress: (progress: number, message: string) => void
+    onProgress: (progress: number, message: string) => void,
+    options?: { generateImages?: boolean }
   ): Promise<WorkoutMenu> {
-    const messages = [
-      'ユーザー設定を分析中...',
-      'AI モデルに接続中...',
-      '最適な運動を選定中...',
-      'セット数と回数を計算中...',
-      '安全性をチェック中...',
-      'メニューを最終調整中...'
-    ];
+    const messages = options?.generateImages 
+      ? [
+          'ユーザー設定を分析中...',
+          'AI モデルに接続中...',
+          '最適な運動を選定中...',
+          'セット数と回数を計算中...',
+          '安全性をチェック中...',
+          'エクササイズ画像を生成中...',
+          'メニューを最終調整中...'
+        ]
+      : [
+          'ユーザー設定を分析中...',
+          'AI モデルに接続中...',
+          '最適な運動を選定中...',
+          'セット数と回数を計算中...',
+          '安全性をチェック中...',
+          'メニューを最終調整中...'
+        ];
 
     let currentProgress = 0;
     const progressIncrement = 80 / messages.length;
@@ -221,11 +235,12 @@ export class WorkoutGenerator {
       currentProgress += progressIncrement;
       onProgress(Math.round(currentProgress), messages[i]);
       
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // Simulate network delay (longer for image generation)
+      const delay = options?.generateImages && i === messages.length - 2 ? 2000 : 600;
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
 
-    return this.generateWorkout(selectedBodyParts, onProgress);
+    return this.generateWorkout(selectedBodyParts, onProgress, options);
   }
 
   /**
