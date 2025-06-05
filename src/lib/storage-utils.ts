@@ -48,13 +48,15 @@ export class SafeStorage {
 
   /**
    * Remove image data from workout menu to reduce size
+   * Preserves base64 data URLs from Stable Diffusion but removes external URLs
    */
   private static stripImageData(menu: WorkoutMenu): WorkoutMenu {
     return {
       ...menu,
       exercises: menu.exercises.map(exercise => ({
         ...exercise,
-        imageUrl: undefined // Remove image URLs to save space
+        // Keep base64 data URLs (Stable Diffusion images) but remove external URLs
+        imageUrl: exercise.imageUrl?.startsWith('data:') ? exercise.imageUrl : undefined
       }))
     };
   }
@@ -266,7 +268,7 @@ export class SafeStorage {
 export const storageUtils = {
   saveWorkout: (menu: WorkoutMenu): StorageResult<WorkoutMenu> => {
     return SafeStorage.setItem('generatedWorkout', menu, { 
-      stripImages: true,
+      stripImages: false, // Keep base64 Stable Diffusion images
       useSessionStorage: true 
     });
   },
