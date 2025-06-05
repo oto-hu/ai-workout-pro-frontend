@@ -125,14 +125,48 @@ export default function WorkoutPage() {
     } catch (error) {
       console.error('Workout generation failed:', error);
       
-      // Enhanced error message extraction
+      // Enhanced error handling for AIGenerationError and other error types
       let errorMessage = 'メニュー生成に失敗しました。もう一度お試しください。';
       let errorDetails = '不明なエラー';
       
-      if (error instanceof Error) {
+      // Handle AIGenerationError specifically
+      const aiError = error as { name?: string; type?: string; message?: string; retryAfter?: number };
+      
+      if (aiError?.name === 'AIGenerationError') {
+        errorMessage = aiError.message || errorMessage;
+        errorDetails = `エラータイプ: ${aiError.type || 'unknown'}`;
+        
+        // Provide specific error messages based on error type
+        switch (aiError.type) {
+          case 'rate_limit':
+            errorMessage = 'APIの利用制限に達しました。しばらくお待ちください。';
+            if (aiError.retryAfter) {
+              errorDetails = `${Math.ceil(aiError.retryAfter / 1000)}秒後に再試行してください`;
+            }
+            break;
+          case 'network_error':
+            errorMessage = 'ネットワーク接続に問題があります。接続を確認してください。';
+            break;
+          case 'timeout_error':
+            errorMessage = 'タイムアウトが発生しました。もう一度お試しください。';
+            break;
+          case 'configuration_error':
+            errorMessage = 'AIサービスの設定に問題があります。管理者にお問い合わせください。';
+            break;
+          case 'validation_error':
+            errorMessage = 'AI レスポンスの形式に問題があります。再試行してください。';
+            break;
+          case 'api_error':
+            errorMessage = 'AIサービスで一時的な問題が発生しています。後でお試しください。';
+            break;
+          case 'client_error':
+            errorMessage = 'リクエストに問題があります。設定を確認してください。';
+            break;
+        }
+      } else if (error instanceof Error) {
         errorDetails = error.message;
         
-        // Provide more specific error messages based on error content
+        // Fallback for standard Error objects
         if (error.message.includes('rate limit')) {
           errorMessage = 'APIの利用制限に達しました。しばらくお待ちください。';
         } else if (error.message.includes('network') || error.message.includes('fetch')) {
@@ -143,10 +177,11 @@ export default function WorkoutPage() {
           errorMessage = 'AIサービスで問題が発生しています。後でお試しください。';
         }
       } else if (typeof error === 'object' && error !== null) {
-        // Handle API response errors
+        // Handle other object-based errors
         const errorObj = error as any;
         if (errorObj.type) {
           errorDetails = `Type: ${errorObj.type}, Message: ${errorObj.message || 'Unknown'}`;
+          errorMessage = errorObj.message || errorMessage;
         } else {
           errorDetails = JSON.stringify(error);
         }
