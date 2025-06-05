@@ -188,43 +188,67 @@ function translateExerciseName(japaneseExerciseName: string): string {
   return 'strength training exercise';
 }
 
+// Safe exercise prompt mapping for DALL-E 3
+function getSafeExercisePrompt(exerciseName: string): string {
+  const safePrompts: Record<string, string> = {
+    // 特定のエクササイズ用の安全なプロンプト
+    'グルートブリッジ': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view',
+    'ヒップブリッジ': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view',
+    'glute bridge': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view',
+    'hip bridge': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view'
+  };
+
+  // 特定のエクササイズに対する安全なプロンプトがある場合はそれを使用
+  if (safePrompts[exerciseName]) {
+    return safePrompts[exerciseName];
+  }
+
+  // デフォルトの安全なプロンプト（日本語の筋肉名を除去）
+  const englishExerciseName = translateExerciseName(exerciseName);
+  return `fitness person demonstrating proper ${englishExerciseName} technique, exercise form demonstration, clean white background, professional fitness guide illustration, neutral pose showing correct posture`;
+}
+
 async function generateExerciseImage(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
   try {
-    // 日本語エクササイズ名を英語に変換
-    const englishExerciseName = translateExerciseName(exerciseName);
-    const muscleGroups = targetMuscles.join(', ');
-    const prompt = `fitness illustration showing proper ${englishExerciseName} form, demonstrating ${muscleGroups} muscles, anatomical diagram style, clean white background, professional fitness guide illustration, side view showing correct posture, no text overlay`;
+    // 安全なプロンプトを生成（日本語の筋肉名や解剖学的表現を除去）
+    const safePrompt = getSafeExercisePrompt(exerciseName);
     
     console.log('[DEBUG] Generating DALL-E 3 image for:', { 
       originalName: exerciseName,
-      translatedName: englishExerciseName,
-      prompt: prompt.substring(0, 100) + '...' 
+      safePrompt: safePrompt.substring(0, 100) + '...' 
     });
     
     const imageResponse = await openai.images.generate({
       model: "dall-e-3",
-      prompt: prompt,
+      prompt: safePrompt,
       size: "1024x1024",
       quality: "standard",
       n: 1,
     });
 
     if (imageResponse.data && imageResponse.data.length > 0 && imageResponse.data[0].url) {
-      console.log('[DEBUG] DALL-E 3 image generated successfully for:', exerciseName, '(translated as:', englishExerciseName + ')');
+      console.log('[DEBUG] DALL-E 3 image generated successfully for:', exerciseName);
       return imageResponse.data[0].url;
     } else {
       console.warn('[WARN] DALL-E 3 response missing image URL for:', exerciseName);
       return null;
     }
   } catch (error: unknown) {
+    const errorObj = error as any;
     console.error('[ERROR] DALL-E 3 image generation failed for', exerciseName, ':', {
       error,
       message: (error as Error)?.message,
       name: (error as Error)?.name,
-      code: (error as any)?.code,
-      type: (error as any)?.type,
-      status: (error as any)?.status
+      code: errorObj?.code,
+      type: errorObj?.type,
+      status: errorObj?.status
     });
+
+    // 特定のエクササイズでエラーが発生した場合はスキップして続行
+    if (errorObj?.status === 400 && errorObj?.type === 'image_generation_user_error') {
+      console.warn(`[WARN] Skipping image generation for ${exerciseName} due to content policy violation`);
+    }
+    
     return null;
   }
 }
@@ -518,7 +542,7 @@ export async function POST(request: NextRequest) {
     if (workoutRequest.generateImages) {
       console.log('[DEBUG] Starting DALL-E 3 image generation for exercises...');
       
-      // Generate images in parallel for better performance
+      // Generate images in parallel for better performance with individual error handling
       const imagePromises = aiResponse.exercises.map(async (exercise, index) => {
         try {
           const imageUrl = await generateExerciseImage(exercise.name, exercise.targetMuscles);
@@ -526,20 +550,23 @@ export async function POST(request: NextRequest) {
             exercise.imageUrl = imageUrl;
             console.log(`[DEBUG] Image generated for exercise ${index + 1}/${aiResponse.exercises.length}: ${exercise.name}`);
           } else {
-            console.warn(`[WARN] No image generated for exercise: ${exercise.name}`);
+            console.warn(`[WARN] No image generated for exercise: ${exercise.name} - continuing without image`);
           }
         } catch (error) {
           console.error(`[ERROR] Failed to generate image for exercise: ${exercise.name}`, error);
+          // Continue without image for this exercise - don't let individual failures stop the process
         }
+        return exercise; // Always return the exercise, even if image generation failed
       });
 
-      // Wait for all image generation to complete (with timeout)
+      // Wait for all image generation to complete with timeout
       try {
-        await Promise.all(imagePromises);
-        console.log('[DEBUG] All exercise images processed');
+        await Promise.allSettled(imagePromises); // Use allSettled to handle individual failures gracefully
+        const imagesGenerated = aiResponse.exercises.filter(ex => ex.imageUrl).length;
+        console.log(`[DEBUG] Image generation completed: ${imagesGenerated}/${aiResponse.exercises.length} images generated successfully`);
       } catch (error) {
-        console.error('[ERROR] Some exercise image generations failed:', error);
-        // Continue with partial results
+        console.error('[ERROR] Unexpected error during image generation batch:', error);
+        // Continue with workout generation even if all images fail
       }
     }
 
