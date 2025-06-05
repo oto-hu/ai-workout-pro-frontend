@@ -189,13 +189,37 @@ export class WorkoutGenerator {
       // Log the error for monitoring
       this.logError(error, workoutRequest);
       
-      // Fallback to mock data
+      // Check if it's an AIGenerationError with specific type
+      const aiError = error as { name?: string; type?: string; message?: string; retryAfter?: number };
+      
+      if (aiError?.name === 'AIGenerationError') {
+        // For certain error types, we might want to re-throw instead of falling back
+        if (aiError.type === 'rate_limit') {
+          throw {
+            name: 'AIGenerationError',
+            type: 'rate_limit',
+            message: aiError.message || 'APIリクエスト制限に達しました。しばらくお待ちください。',
+            retryAfter: aiError.retryAfter
+          };
+        }
+        
+        if (aiError.type === 'configuration_error') {
+          throw {
+            name: 'AIGenerationError',
+            type: 'configuration_error',
+            message: aiError.message || 'AIサービスの設定に問題があります。'
+          };
+        }
+      }
+      
+      // Fallback to mock data for other errors
       onProgress?.(60, 'AI生成に失敗、フォールバックメニューを作成中...');
       
       const mockMenu = generateWorkoutMenu(selectedBodyParts);
       
-      // Add notice that this is a fallback
-      mockMenu.description = `${mockMenu.description} (AI生成に失敗したため、代替メニューを表示しています)`;
+      // Add notice that this is a fallback with more informative message
+      const errorType = aiError?.type || 'unknown';
+      mockMenu.description = `${mockMenu.description} (AI生成に失敗したため、代替メニューを表示しています。エラー: ${errorType})`;
       
       onProgress?.(100, 'メニュー生成完了！');
       
