@@ -112,10 +112,38 @@ export default function WorkoutPage() {
       });
 
       // Store the generated menu safely for the result page
+      console.log('Saving workout data, exercises count:', menu.exercises.length);
       const saveResult = storageUtils.saveWorkout(menu);
       if (!saveResult.success) {
-        console.warn('Failed to save workout:', saveResult.error);
-        // Still proceed to result page - it will handle the missing data
+        console.error('Failed to save workout:', saveResult.error);
+        
+        // Try fallback storage without images
+        console.log('Attempting fallback storage without images...');
+        const fallbackMenu = {
+          ...menu,
+          exercises: menu.exercises.map(ex => ({ 
+            ...ex, 
+            imageUrl: undefined 
+          }))
+        };
+        
+        const fallbackResult = storageUtils.saveWorkout(fallbackMenu);
+        if (!fallbackResult.success) {
+          console.error('Fallback storage also failed:', fallbackResult.error);
+          
+          // Set error state instead of navigating
+          setGeneration({
+            status: 'error',
+            progress: 0,
+            message: 'ワークアウトデータの保存に失敗しました。',
+            error: `Storage error: ${saveResult.error}. Fallback also failed: ${fallbackResult.error}`
+          });
+          return; // Don't navigate to result page
+        } else {
+          console.log('Fallback storage succeeded');
+        }
+      } else {
+        console.log('Workout data saved successfully');
       }
       
       // Navigate to result page after a short delay

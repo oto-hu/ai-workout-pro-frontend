@@ -90,13 +90,15 @@ export class SafeStorage {
     const serialized = JSON.stringify(dataToStore);
     const dataSize = this.calculateSize(serialized);
 
-    // Check if data exceeds reasonable size (4MB for localStorage, 8MB for sessionStorage)
-    const maxSize = useSessionStorage ? 8 * 1024 * 1024 : 4 * 1024 * 1024;
+    // Check if data exceeds reasonable size (2MB for localStorage, 5MB for sessionStorage)
+    // Reduced limits to be more conservative with mobile browsers
+    const maxSize = useSessionStorage ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
     if (dataSize > maxSize) {
-      console.warn(`Data size (${Math.round(dataSize / 1024)}KB) exceeds limit`);
+      console.warn(`Data size (${Math.round(dataSize / 1024)}KB) exceeds ${maxSize / 1024 / 1024}MB limit`);
       
       // Auto-strip images if not already done and it's a WorkoutMenu
       if (!stripImages && typeof value === 'object' && value !== null && 'exercises' in value) {
+        console.log('Auto-stripping images due to size limit');
         return this.setItem(key, value, { ...options, stripImages: true });
       }
       
@@ -267,9 +269,35 @@ export class SafeStorage {
  */
 export const storageUtils = {
   saveWorkout: (menu: WorkoutMenu): StorageResult<WorkoutMenu> => {
-    return SafeStorage.setItem('generatedWorkout', menu, { 
-      stripImages: false, // Keep base64 Stable Diffusion images
+    // First try localStorage without stripping images
+    console.log('Attempting to save workout to localStorage with images...');
+    const localResult = SafeStorage.setItem('generatedWorkout', menu, { 
+      stripImages: false,
+      useSessionStorage: false 
+    });
+    
+    if (localResult.success) {
+      console.log('Successfully saved to localStorage with images');
+      return localResult;
+    }
+    
+    // If localStorage fails, try sessionStorage
+    console.log('localStorage failed, trying sessionStorage...');
+    const sessionResult = SafeStorage.setItem('generatedWorkout', menu, { 
+      stripImages: false,
       useSessionStorage: true 
+    });
+    
+    if (sessionResult.success) {
+      console.log('Successfully saved to sessionStorage with images');
+      return sessionResult;
+    }
+    
+    // If both fail, try localStorage without images as final fallback
+    console.log('Both storages failed with images, trying localStorage without images...');
+    return SafeStorage.setItem('generatedWorkout', menu, { 
+      stripImages: true,
+      useSessionStorage: false 
     });
   },
 
