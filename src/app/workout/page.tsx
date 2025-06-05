@@ -123,11 +123,42 @@ export default function WorkoutPage() {
       }, 1000);
 
     } catch (error) {
+      console.error('Workout generation failed:', error);
+      
+      // Enhanced error message extraction
+      let errorMessage = 'メニュー生成に失敗しました。もう一度お試しください。';
+      let errorDetails = '不明なエラー';
+      
+      if (error instanceof Error) {
+        errorDetails = error.message;
+        
+        // Provide more specific error messages based on error content
+        if (error.message.includes('rate limit')) {
+          errorMessage = 'APIの利用制限に達しました。しばらくお待ちください。';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'ネットワーク接続に問題があります。接続を確認してください。';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'タイムアウトが発生しました。もう一度お試しください。';
+        } else if (error.message.includes('API')) {
+          errorMessage = 'AIサービスで問題が発生しています。後でお試しください。';
+        }
+      } else if (typeof error === 'object' && error !== null) {
+        // Handle API response errors
+        const errorObj = error as any;
+        if (errorObj.type) {
+          errorDetails = `Type: ${errorObj.type}, Message: ${errorObj.message || 'Unknown'}`;
+        } else {
+          errorDetails = JSON.stringify(error);
+        }
+      } else {
+        errorDetails = String(error);
+      }
+
       setGeneration({
         status: 'error',
         progress: 0,
-        message: 'メニュー生成に失敗しました。もう一度お試しください。',
-        error: error instanceof Error ? error.message : '不明なエラー'
+        message: errorMessage,
+        error: errorDetails
       });
     }
   };
@@ -325,9 +356,28 @@ export default function WorkoutPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <p className="text-red-800 font-medium">
+                <h3 className="text-lg font-semibold text-red-800 mb-2">
+                  エラーが発生しました
+                </h3>
+                <p className="text-red-800 font-medium mb-3">
                   {generation.message}
                 </p>
+                {generation.error && (
+                  <details className="text-left bg-red-100 rounded-lg p-3 mt-3">
+                    <summary className="text-red-700 font-medium cursor-pointer hover:text-red-800">
+                      詳細情報を表示
+                    </summary>
+                    <pre className="text-red-600 text-sm mt-2 whitespace-pre-wrap overflow-x-auto">
+                      {generation.error}
+                    </pre>
+                  </details>
+                )}
+                <button
+                  onClick={() => setGeneration({ status: 'idle', progress: 0, message: '' })}
+                  className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  もう一度試す
+                </button>
               </div>
             </div>
           )}

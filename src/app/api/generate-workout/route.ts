@@ -113,6 +113,62 @@ function validateWorkoutRequest(body: unknown): { valid: boolean; error?: string
   return { valid: true };
 }
 
+// Problematic exercises that consistently fail with DALL-E 3
+const PROBLEMATIC_EXERCISES = new Set([
+  'グルートブリッジ',
+  'glute bridge',
+  'ヒップブリッジ'
+]);
+
+// Exercise replacement mapping for problematic terms
+const EXERCISE_REPLACEMENTS: Record<string, string> = {
+  'グルートブリッジ': 'ヒップスラスト',
+  'glute bridge': 'hip thrust',
+  'ヒップブリッジ': 'ブリッジエクササイズ'
+};
+
+// Alternative exercises for problematic ones
+const ALTERNATIVE_EXERCISES: Record<string, string[]> = {
+  'グルートブリッジ': ['ヒップスラスト', 'ブリッジエクササイズ', 'シングルレッグブリッジ'],
+  'glute bridge': ['hip thrust', 'bridge exercise', 'single leg bridge'],
+  'ヒップブリッジ': ['ヒップスラスト', 'ブリッジエクササイズ', 'シングルレッグブリッジ']
+};
+
+// Check if exercise name contains problematic terms
+function isProblematicExercise(exerciseName: string): boolean {
+  return Array.from(PROBLEMATIC_EXERCISES).some(problem => 
+    exerciseName.toLowerCase().includes(problem.toLowerCase())
+  );
+}
+
+// Replace problematic exercise names with safer alternatives
+function replaceProblematicExercise(exerciseName: string): string {
+  for (const [problematic, replacement] of Object.entries(EXERCISE_REPLACEMENTS)) {
+    if (exerciseName.toLowerCase().includes(problematic.toLowerCase())) {
+      console.log(`[INFO] Replacing problematic exercise "${exerciseName}" with "${replacement}"`);
+      return exerciseName.replace(new RegExp(problematic, 'gi'), replacement);
+    }
+  }
+  return exerciseName;
+}
+
+// Get alternative exercise if original fails
+function getAlternativeExercise(exerciseName: string): string | null {
+  for (const [problematic, alternatives] of Object.entries(ALTERNATIVE_EXERCISES)) {
+    if (exerciseName.toLowerCase().includes(problematic.toLowerCase())) {
+      // Return first alternative that's not the same as original
+      const alternative = alternatives.find(alt => 
+        alt.toLowerCase() !== exerciseName.toLowerCase()
+      );
+      if (alternative) {
+        console.log(`[INFO] Using alternative exercise "${alternative}" for "${exerciseName}"`);
+        return alternative;
+      }
+    }
+  }
+  return null;
+}
+
 // Japanese to English exercise name mapping
 function translateExerciseName(japaneseExerciseName: string): string {
   const exerciseTranslations: Record<string, string> = {
@@ -154,8 +210,11 @@ function translateExerciseName(japaneseExerciseName: string): string {
     'ランジ': 'lunge',
     'カーフレイズ': 'calf raise',
     'スタンディングカーフレイズ': 'standing calf raise',
-    'ヒップブリッジ': 'hip bridge',
-    'グルートブリッジ': 'glute bridge',
+    'ヒップスラスト': 'hip thrust',
+    'ヒップブリッジ': 'bridge exercise',
+    'グルートブリッジ': 'hip thrust',
+    'ブリッジエクササイズ': 'bridge exercise',
+    'シングルレッグブリッジ': 'single leg bridge',
     'レッグプレス': 'leg press',
     'デッドリフト': 'deadlift',
     
@@ -170,21 +229,24 @@ function translateExerciseName(japaneseExerciseName: string): string {
     'クールダウン': 'cool down'
   };
 
+  // Replace problematic exercises first
+  const safeName = replaceProblematicExercise(japaneseExerciseName);
+
   // 完全一致を試す
-  const exactMatch = exerciseTranslations[japaneseExerciseName];
+  const exactMatch = exerciseTranslations[safeName];
   if (exactMatch) {
     return exactMatch;
   }
 
   // 部分一致を試す（キーワードベース）
   for (const [japanese, english] of Object.entries(exerciseTranslations)) {
-    if (japaneseExerciseName.includes(japanese)) {
+    if (safeName.includes(japanese)) {
       return english;
     }
   }
 
   // 翻訳が見つからない場合は、日本語を除去して安全な英語フレーズに変換
-  console.warn('[WARN] No translation found for exercise:', japaneseExerciseName);
+  console.warn('[WARN] No translation found for exercise:', safeName);
   return 'strength training exercise';
 }
 
@@ -210,11 +272,23 @@ function getSafeExercisePrompt(exerciseName: string): string {
 
 async function generateExerciseImage(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
   try {
+    // Check if this is a problematic exercise and try alternative first
+    let currentExerciseName = exerciseName;
+    
+    if (isProblematicExercise(exerciseName)) {
+      const alternative = getAlternativeExercise(exerciseName);
+      if (alternative) {
+        currentExerciseName = alternative;
+        console.log(`[INFO] Using alternative exercise "${alternative}" for image generation instead of "${exerciseName}"`);
+      }
+    }
+
     // 安全なプロンプトを生成（日本語の筋肉名や解剖学的表現を除去）
-    const safePrompt = getSafeExercisePrompt(exerciseName);
+    const safePrompt = getSafeExercisePrompt(currentExerciseName);
     
     console.log('[DEBUG] Generating DALL-E 3 image for:', { 
       originalName: exerciseName,
+      usedName: currentExerciseName,
       safePrompt: safePrompt.substring(0, 100) + '...' 
     });
     
@@ -227,10 +301,10 @@ async function generateExerciseImage(exerciseName: string, targetMuscles: string
     });
 
     if (imageResponse.data && imageResponse.data.length > 0 && imageResponse.data[0].url) {
-      console.log('[DEBUG] DALL-E 3 image generated successfully for:', exerciseName);
+      console.log('[DEBUG] DALL-E 3 image generated successfully for:', currentExerciseName);
       return imageResponse.data[0].url;
     } else {
-      console.warn('[WARN] DALL-E 3 response missing image URL for:', exerciseName);
+      console.warn('[WARN] DALL-E 3 response missing image URL for:', currentExerciseName);
       return null;
     }
   } catch (error: unknown) {
@@ -244,9 +318,34 @@ async function generateExerciseImage(exerciseName: string, targetMuscles: string
       status: errorObj?.status
     });
 
-    // 特定のエクササイズでエラーが発生した場合はスキップして続行
+    // 特定のエクササイズでエラーが発生した場合は代替エクササイズを試す
     if (errorObj?.status === 400 && errorObj?.type === 'image_generation_user_error') {
-      console.warn(`[WARN] Skipping image generation for ${exerciseName} due to content policy violation`);
+      console.warn(`[WARN] Content policy violation for ${exerciseName}, trying alternative exercise`);
+      
+      // Try alternative exercise if not already tried
+      if (!isProblematicExercise(exerciseName)) {
+        const alternative = getAlternativeExercise(exerciseName);
+        if (alternative) {
+          console.log(`[INFO] Retrying with alternative exercise: ${alternative}`);
+          try {
+            const alternativePrompt = getSafeExercisePrompt(alternative);
+            const retryResponse = await openai.images.generate({
+              model: "dall-e-3",
+              prompt: alternativePrompt,
+              size: "1024x1024",
+              quality: "standard",
+              n: 1,
+            });
+            
+            if (retryResponse.data && retryResponse.data.length > 0 && retryResponse.data[0].url) {
+              console.log('[DEBUG] Alternative exercise image generated successfully:', alternative);
+              return retryResponse.data[0].url;
+            }
+          } catch (retryError) {
+            console.error('[ERROR] Alternative exercise also failed:', alternative, retryError);
+          }
+        }
+      }
     }
     
     return null;

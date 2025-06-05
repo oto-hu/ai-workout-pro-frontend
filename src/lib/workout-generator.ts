@@ -305,12 +305,39 @@ export class WorkoutGenerator {
    * Log errors for monitoring and improvement
    */
   private logError(error: unknown, request: WorkoutRequest): void {
+    // Enhanced error extraction
+    let errorDetails: any = {};
+    
+    if (error instanceof Error) {
+      errorDetails = {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      };
+    } else if (typeof error === 'object' && error !== null) {
+      // Handle object errors (like API response errors)
+      errorDetails = {
+        ...error,
+        message: (error as any).message || 'Unknown error',
+        toString: String(error)
+      };
+    } else {
+      errorDetails = {
+        message: String(error),
+        type: typeof error,
+        value: error
+      };
+    }
+
     const errorLog = {
       timestamp: new Date().toISOString(),
       error: {
-        message: error instanceof Error ? error.message : String(error),
-        type: (error as { type?: string }).type || 'unknown',
-        stack: error instanceof Error ? error.stack : undefined
+        message: errorDetails.message || 'Unknown error occurred',
+        type: errorDetails.type || (error as { type?: string }).type || 'unknown',
+        name: errorDetails.name || 'UnknownError',
+        stack: errorDetails.stack,
+        details: errorDetails,
+        originalError: error
       },
       request: {
         targetMuscles: request.targetMuscles,
@@ -323,7 +350,10 @@ export class WorkoutGenerator {
     };
 
     // In a real app, send this to your monitoring service
-    console.error('Workout generation error:', errorLog);
+    console.error('Workout generation error:', JSON.stringify(errorLog, null, 2));
+    
+    // Also log the raw error for immediate debugging
+    console.error('Raw error object:', error);
     
     // Store locally for debugging (optional)
     if (typeof window !== 'undefined') {
@@ -335,8 +365,8 @@ export class WorkoutGenerator {
           errors.splice(0, errors.length - 10);
         }
         localStorage.setItem('aiWorkoutPro_errors', JSON.stringify(errors));
-      } catch {
-        // Ignore localStorage errors
+      } catch (storageError) {
+        console.warn('Failed to store error in localStorage:', storageError);
       }
     }
   }
