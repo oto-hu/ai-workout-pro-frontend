@@ -15,13 +15,31 @@ export default function WorkoutResultPage() {
 
   useEffect(() => {
     // Try to get the workout from storage
+    console.log('Loading workout data from storage...');
     const workoutResult = storageUtils.loadWorkout();
     if (workoutResult.success && workoutResult.data) {
+      console.log('Workout data loaded successfully:', workoutResult.data.title);
       setWorkoutMenu(workoutResult.data);
     } else {
-      console.warn('Failed to load workout:', workoutResult.error);
-      // If no stored workout, redirect back to workout selection
-      router.push('/workout');
+      console.error('Failed to load workout:', workoutResult.error);
+      
+      // Avoid infinite redirect loop by setting a flag
+      const hasRedirected = sessionStorage.getItem('workout_redirect_attempted');
+      if (!hasRedirected) {
+        console.log('Setting redirect flag and redirecting to workout page');
+        sessionStorage.setItem('workout_redirect_attempted', 'true');
+        
+        // Clear redirect flag after navigation
+        setTimeout(() => {
+          sessionStorage.removeItem('workout_redirect_attempted');
+        }, 2000);
+        
+        router.push('/workout');
+      } else {
+        console.error('Redirect loop detected, staying on result page with error message');
+        // Don't redirect again, show error message instead
+        setWorkoutMenu(null);
+      }
     }
 
     // Load favorites from storage
@@ -101,6 +119,45 @@ export default function WorkoutResultPage() {
   };
 
   if (!workoutMenu) {
+    // Check if we're in a redirect loop scenario
+    const hasRedirected = typeof window !== 'undefined' && sessionStorage.getItem('workout_redirect_attempted');
+    
+    if (hasRedirected) {
+      return (
+        <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen flex items-center justify-center">
+          <div className="max-w-md mx-auto text-center p-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full mx-auto flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              ワークアウトデータが見つかりません
+            </h2>
+            <p className="text-gray-600 mb-6">
+              申し訳ございませんが、ワークアウトデータの読み込みに失敗しました。
+              新しいワークアウトを生成してください。
+            </p>
+            <div className="space-y-3">
+              <Link
+                href="/workout"
+                className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
+              >
+                新しいワークアウトを生成
+              </Link>
+              <br />
+              <Link
+                href="/"
+                className="inline-block text-gray-600 hover:text-blue-600 font-medium transition-colors"
+              >
+                ← ホームに戻る
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
