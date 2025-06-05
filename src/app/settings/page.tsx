@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { UserPreferences } from '@/types/workout';
+import { storageUtils } from '@/lib/storage-utils';
 
 const STORAGE_KEY = 'aiWorkoutPro_userPreferences';
 
@@ -20,16 +21,11 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  // Load preferences from localStorage on mount
+  // Load preferences from storage on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setPreferences({ ...defaultPreferences, ...parsed });
-      }
-    } catch (error) {
-      console.error('Failed to load user preferences:', error);
+    const result = storageUtils.loadUserPreferences();
+    if (result.success && result.data) {
+      setPreferences({ ...defaultPreferences, ...result.data });
     }
   }, []);
 
@@ -37,16 +33,15 @@ export default function SettingsPage() {
     setIsSaving(true);
     setSaveStatus('idle');
     
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+    const result = storageUtils.saveUserPreferences(preferences);
+    if (result.success) {
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (error) {
-      console.error('Failed to save preferences:', error);
+    } else {
+      console.error('Failed to save preferences:', result.error);
       setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
     }
+    setIsSaving(false);
   };
 
   const updatePreference = <K extends keyof UserPreferences>(

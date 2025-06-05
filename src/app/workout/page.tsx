@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BodyPart, WorkoutGeneration } from '@/types/workout';
 import { workoutGenerator } from '@/lib/workout-generator';
+import { storageUtils } from '@/lib/storage-utils';
 
 const bodyParts: BodyPart[] = [
   {
@@ -64,12 +65,8 @@ export default function WorkoutPage() {
 
   // Check if user has settings configured
   useEffect(() => {
-    try {
-      const settings = localStorage.getItem('aiWorkoutPro_userPreferences');
-      setHasUserSettings(!!settings);
-    } catch (error) {
-      console.error('Failed to check user settings:', error);
-    }
+    const result = storageUtils.loadUserPreferences();
+    setHasUserSettings(result.success && result.data);
   }, []);
 
   const toggleBodyPart = (partId: string) => {
@@ -114,8 +111,12 @@ export default function WorkoutPage() {
         menu
       });
 
-      // Store the generated menu in sessionStorage for the result page
-      sessionStorage.setItem('generatedWorkout', JSON.stringify(menu));
+      // Store the generated menu safely for the result page
+      const saveResult = storageUtils.saveWorkout(menu);
+      if (!saveResult.success) {
+        console.warn('Failed to save workout:', saveResult.error);
+        // Still proceed to result page - it will handle the missing data
+      }
       
       // Navigate to result page after a short delay
       setTimeout(() => {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { WorkoutMenu } from '@/types/workout';
 import { workoutGenerator } from '@/lib/workout-generator';
+import { storageUtils } from '@/lib/storage-utils';
 
 export default function WorkoutResultPage() {
   const [workoutMenu, setWorkoutMenu] = useState<WorkoutMenu | null>(null);
@@ -13,19 +14,20 @@ export default function WorkoutResultPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Try to get the workout from sessionStorage
-    const storedWorkout = sessionStorage.getItem('generatedWorkout');
-    if (storedWorkout) {
-      setWorkoutMenu(JSON.parse(storedWorkout));
+    // Try to get the workout from storage
+    const workoutResult = storageUtils.loadWorkout();
+    if (workoutResult.success && workoutResult.data) {
+      setWorkoutMenu(workoutResult.data);
     } else {
+      console.warn('Failed to load workout:', workoutResult.error);
       // If no stored workout, redirect back to workout selection
       router.push('/workout');
     }
 
-    // Load favorites from localStorage
-    const storedFavorites = localStorage.getItem('favoriteWorkouts');
-    if (storedFavorites) {
-      setFavorites(JSON.parse(storedFavorites));
+    // Load favorites from storage
+    const favoritesResult = storageUtils.loadFavorites();
+    if (favoritesResult.success && favoritesResult.data) {
+      setFavorites(favoritesResult.data);
     }
   }, [router]);
 
@@ -45,7 +47,10 @@ export default function WorkoutResultPage() {
       );
       
       setWorkoutMenu(newMenu);
-      sessionStorage.setItem('generatedWorkout', JSON.stringify(newMenu));
+      const saveResult = storageUtils.saveWorkout(newMenu);
+      if (!saveResult.success) {
+        console.warn('Failed to save regenerated workout:', saveResult.error);
+      }
     } catch (_error) {
       console.error('Regeneration failed:', _error);
       // Fallback to original mock generation if needed
@@ -62,13 +67,25 @@ export default function WorkoutResultPage() {
       : [...favorites, workoutMenu.id];
     
     setFavorites(newFavorites);
-    localStorage.setItem('favoriteWorkouts', JSON.stringify(newFavorites));
+    const saveResult = storageUtils.saveFavorites(newFavorites);
+    if (!saveResult.success) {
+      console.warn('Failed to save favorites:', saveResult.error);
+    }
     
-    // Also store the workout details
-    const savedWorkouts = JSON.parse(localStorage.getItem('savedWorkouts') || '{}');
+    // Also store the workout details safely
     if (!favorites.includes(workoutMenu.id)) {
-      savedWorkouts[workoutMenu.id] = workoutMenu;
-      localStorage.setItem('savedWorkouts', JSON.stringify(savedWorkouts));
+      try {
+        const savedWorkouts = JSON.parse(localStorage.getItem('savedWorkouts') || '{}');
+        // Strip image data before saving to avoid quota issues
+        const workoutToSave = {
+          ...workoutMenu,
+          exercises: workoutMenu.exercises.map(ex => ({ ...ex, imageUrl: undefined }))
+        };
+        savedWorkouts[workoutMenu.id] = workoutToSave;
+        localStorage.setItem('savedWorkouts', JSON.stringify(savedWorkouts));
+      } catch (error) {
+        console.warn('Failed to save workout details:', error);
+      }
     }
   };
 
