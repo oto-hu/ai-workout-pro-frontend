@@ -76,10 +76,13 @@ export default function WorkoutResultPage() {
     if (!favorites.includes(workoutMenu.id)) {
       try {
         const savedWorkouts = JSON.parse(localStorage.getItem('savedWorkouts') || '{}');
-        // Strip image data before saving to avoid quota issues
+        // Keep base64 data URLs (Stable Diffusion images) but strip external URLs to avoid quota issues
         const workoutToSave = {
           ...workoutMenu,
-          exercises: workoutMenu.exercises.map(ex => ({ ...ex, imageUrl: undefined }))
+          exercises: workoutMenu.exercises.map(ex => ({ 
+            ...ex, 
+            imageUrl: ex.imageUrl?.startsWith('data:') ? ex.imageUrl : undefined 
+          }))
         };
         savedWorkouts[workoutMenu.id] = workoutToSave;
         localStorage.setItem('savedWorkouts', JSON.stringify(savedWorkouts));
