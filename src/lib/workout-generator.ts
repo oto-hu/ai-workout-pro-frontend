@@ -1,5 +1,6 @@
 import { aiClient } from './ai-client';
 import { generateWorkoutMenu } from './mockData';
+import { SafeStorage } from './storage-utils';
 import { 
   WorkoutRequest, 
   AIWorkoutResponse, 
@@ -27,13 +28,8 @@ export class WorkoutGenerator {
   private getUserPreferences(): UserPreferences | null {
     if (typeof window === 'undefined') return null;
     
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch (error) {
-      console.error('Failed to load user preferences:', error);
-      return null;
-    }
+    const result = SafeStorage.getItem<UserPreferences>(STORAGE_KEY);
+    return result.success ? result.data : null;
   }
 
   /**
@@ -379,18 +375,20 @@ export class WorkoutGenerator {
     // Also log the raw error for immediate debugging
     console.error('Raw error object:', error);
     
-    // Store locally for debugging (optional)
+    // Store locally for debugging (optional) with safe storage
     if (typeof window !== 'undefined') {
-      try {
-        const errors = JSON.parse(localStorage.getItem('aiWorkoutPro_errors') || '[]');
-        errors.push(errorLog);
-        // Keep only last 10 errors
-        if (errors.length > 10) {
-          errors.splice(0, errors.length - 10);
-        }
-        localStorage.setItem('aiWorkoutPro_errors', JSON.stringify(errors));
-      } catch (storageError) {
-        console.warn('Failed to store error in localStorage:', storageError);
+      const existingResult = SafeStorage.getItem<any[]>('aiWorkoutPro_errors', { defaultValue: [] });
+      const errors = existingResult.success ? existingResult.data || [] : [];
+      
+      errors.push(errorLog);
+      // Keep only last 10 errors
+      if (errors.length > 10) {
+        errors.splice(0, errors.length - 10);
+      }
+      
+      const saveResult = SafeStorage.setItem('aiWorkoutPro_errors', errors);
+      if (!saveResult.success) {
+        console.warn('Failed to store error in storage:', saveResult.error);
       }
     }
   }
@@ -401,22 +399,21 @@ export class WorkoutGenerator {
   getErrorStats(): { totalErrors: number; recentErrors: number; errorTypes: Record<string, number> } | null {
     if (typeof window === 'undefined') return null;
     
-    try {
-      const errors = JSON.parse(localStorage.getItem('aiWorkoutPro_errors') || '[]');
-      return {
-        totalErrors: errors.length,
-        recentErrors: errors.filter((e: { timestamp: string }) => 
-          Date.now() - new Date(e.timestamp).getTime() < 24 * 60 * 60 * 1000
-        ).length,
-        errorTypes: errors.reduce((acc: Record<string, number>, error: { error: { type?: string } }) => {
-          const type = error.error.type || 'unknown';
-          acc[type] = (acc[type] || 0) + 1;
-          return acc;
-        }, {})
-      };
-    } catch {
-      return null;
-    }
+    const result = SafeStorage.getItem<any[]>('aiWorkoutPro_errors', { defaultValue: [] });
+    if (!result.success) return null;
+    
+    const errors = result.data || [];
+    return {
+      totalErrors: errors.length,
+      recentErrors: errors.filter((e: { timestamp: string }) => 
+        Date.now() - new Date(e.timestamp).getTime() < 24 * 60 * 60 * 1000
+      ).length,
+      errorTypes: errors.reduce((acc: Record<string, number>, error: { error: { type?: string } }) => {
+        const type = error.error.type || 'unknown';
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {})
+    };
   }
 }
 
