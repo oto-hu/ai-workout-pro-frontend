@@ -8,6 +8,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// Stability AI API configuration
+const STABILITY_API_URL = 'https://api.stability.ai/v2beta/stable-image/generate/sd3';
+const STABILITY_API_KEY = process.env.STABILITY_AI_API_KEY;
+
 // Rate limiting storage (in production, use Redis or similar)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT = 10; // requests per hour
@@ -250,27 +254,137 @@ function translateExerciseName(japaneseExerciseName: string): string {
   return 'strength training exercise';
 }
 
-// Safe exercise prompt mapping for DALL-E 3
-function getSafeExercisePrompt(exerciseName: string): string {
-  const safePrompts: Record<string, string> = {
-    // 特定のエクササイズ用の安全なプロンプト
-    'グルートブリッジ': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view',
-    'ヒップブリッジ': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view',
-    'glute bridge': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view',
-    'hip bridge': 'fitness person performing bridge exercise on the floor, lying on back with knees bent and hips raised, clean white background, professional fitness demonstration, side view'
+// Stable Diffusion optimized exercise prompt mapping
+function getStableDiffusionPrompt(exerciseName: string): string {
+  const optimizedPrompts: Record<string, string> = {
+    // 特定のエクササイズ用の最適化されたプロンプト
+    'グルートブリッジ': 'athletic person performing bridge exercise, lying on back with knees bent and hips raised upward, fitness studio setting, professional workout demonstration, side angle view, detailed form, high quality, photorealistic',
+    'ヒップブリッジ': 'athletic person performing bridge exercise, lying on back with knees bent and hips raised upward, fitness studio setting, professional workout demonstration, side angle view, detailed form, high quality, photorealistic',
+    'glute bridge': 'athletic person performing bridge exercise, lying on back with knees bent and hips raised upward, fitness studio setting, professional workout demonstration, side angle view, detailed form, high quality, photorealistic',
+    'hip bridge': 'athletic person performing bridge exercise, lying on back with knees bent and hips raised upward, fitness studio setting, professional workout demonstration, side angle view, detailed form, high quality, photorealistic',
+    'ヒップスラスト': 'athletic person performing hip thrust exercise with proper form, fitness demonstration, clean gym environment, professional lighting, high quality, photorealistic',
+    'hip thrust': 'athletic person performing hip thrust exercise with proper form, fitness demonstration, clean gym environment, professional lighting, high quality, photorealistic'
   };
 
-  // 特定のエクササイズに対する安全なプロンプトがある場合はそれを使用
-  if (safePrompts[exerciseName]) {
-    return safePrompts[exerciseName];
+  // 特定のエクササイズに対する最適化されたプロンプトがある場合はそれを使用
+  if (optimizedPrompts[exerciseName]) {
+    return optimizedPrompts[exerciseName];
   }
 
-  // デフォルトの安全なプロンプト（日本語の筋肉名を除去）
+  // デフォルトのStable Diffusion向けプロンプト
   const englishExerciseName = translateExerciseName(exerciseName);
-  return `fitness person demonstrating proper ${englishExerciseName} technique, exercise form demonstration, clean white background, professional fitness guide illustration, neutral pose showing correct posture`;
+  return `athletic person demonstrating ${englishExerciseName} exercise with proper form, fitness training demonstration, modern gym setting, professional workout guide, clean lighting, high quality, photorealistic, detailed anatomy`;
 }
 
-async function generateExerciseImage(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
+async function generateExerciseImageWithStableDiffusion(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
+  try {
+    // Validate API key
+    if (!STABILITY_API_KEY) {
+      console.error('[ERROR] Stability AI API key is not configured');
+      return null;
+    }
+
+    // Get optimized prompt for Stable Diffusion
+    const prompt = getStableDiffusionPrompt(exerciseName);
+    
+    console.log('[DEBUG] Generating Stable Diffusion image for:', { 
+      exerciseName,
+      prompt: prompt.substring(0, 100) + '...' 
+    });
+
+    // Prepare form data for Stability AI API
+    const formData = new FormData();
+    formData.append('prompt', prompt);
+    formData.append('model', 'sd3.5-medium');
+    formData.append('output_format', 'png');
+    formData.append('aspect_ratio', '1:1');
+    formData.append('style_preset', 'photographic');
+    formData.append('cfg_scale', '7');
+    formData.append('steps', '28');
+
+    const response = await fetch(STABILITY_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${STABILITY_API_KEY}`,
+        'Accept': 'image/*'
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[ERROR] Stability AI API request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return null;
+    }
+
+    // Get the image as blob and convert to base64 data URL
+    const imageBlob = await response.blob();
+    const arrayBuffer = await imageBlob.arrayBuffer();
+    const base64String = Buffer.from(arrayBuffer).toString('base64');
+    const dataUrl = `data:image/png;base64,${base64String}`;
+
+    console.log('[DEBUG] Stable Diffusion image generated successfully for:', exerciseName);
+    return dataUrl;
+
+  } catch (error: unknown) {
+    const errorObj = error as any;
+    console.error('[ERROR] Stable Diffusion image generation failed for', exerciseName, ':', {
+      error,
+      message: (error as Error)?.message,
+      name: (error as Error)?.name,
+      code: errorObj?.code,
+      status: errorObj?.status
+    });
+
+    // Try with alternative exercise name if original failed
+    const alternative = getAlternativeExercise(exerciseName);
+    if (alternative && alternative !== exerciseName) {
+      console.log(`[INFO] Retrying with alternative exercise: ${alternative}`);
+      try {
+        const alternativePrompt = getStableDiffusionPrompt(alternative);
+        
+        const formData = new FormData();
+        formData.append('prompt', alternativePrompt);
+        formData.append('model', 'sd3.5-medium');
+        formData.append('output_format', 'png');
+        formData.append('aspect_ratio', '1:1');
+        formData.append('style_preset', 'photographic');
+        formData.append('cfg_scale', '7');
+        formData.append('steps', '28');
+
+        const retryResponse = await fetch(STABILITY_API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${STABILITY_API_KEY}`,
+            'Accept': 'image/*'
+          },
+          body: formData
+        });
+
+        if (retryResponse.ok) {
+          const retryImageBlob = await retryResponse.blob();
+          const retryArrayBuffer = await retryImageBlob.arrayBuffer();
+          const retryBase64String = Buffer.from(retryArrayBuffer).toString('base64');
+          const retryDataUrl = `data:image/png;base64,${retryBase64String}`;
+          
+          console.log('[DEBUG] Alternative exercise image generated successfully:', alternative);
+          return retryDataUrl;
+        }
+      } catch (retryError) {
+        console.error('[ERROR] Alternative exercise also failed:', alternative, retryError);
+      }
+    }
+    
+    return null;
+  }
+}
+
+// Legacy DALL-E 3 function for fallback (if needed)
+async function generateExerciseImageWithDallE(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
   try {
     // Check if this is a problematic exercise and try alternative first
     let currentExerciseName = exerciseName;
@@ -284,7 +398,7 @@ async function generateExerciseImage(exerciseName: string, targetMuscles: string
     }
 
     // 安全なプロンプトを生成（日本語の筋肉名や解剖学的表現を除去）
-    const safePrompt = getSafeExercisePrompt(currentExerciseName);
+    const safePrompt = getStableDiffusionPrompt(currentExerciseName);
     
     console.log('[DEBUG] Generating DALL-E 3 image for:', { 
       originalName: exerciseName,
@@ -328,7 +442,7 @@ async function generateExerciseImage(exerciseName: string, targetMuscles: string
         if (alternative) {
           console.log(`[INFO] Retrying with alternative exercise: ${alternative}`);
           try {
-            const alternativePrompt = getSafeExercisePrompt(alternative);
+            const alternativePrompt = getStableDiffusionPrompt(alternative);
             const retryResponse = await openai.images.generate({
               model: "dall-e-3",
               prompt: alternativePrompt,
@@ -350,6 +464,12 @@ async function generateExerciseImage(exerciseName: string, targetMuscles: string
     
     return null;
   }
+}
+
+// Main image generation function that uses Stable Diffusion
+async function generateExerciseImage(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
+  // Use Stable Diffusion 3.5 Medium as primary method
+  return await generateExerciseImageWithStableDiffusion(exerciseName, targetMuscles);
 }
 
 export async function POST(request: NextRequest) {
@@ -377,19 +497,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Enhanced API key validation
-    const apiKey = process.env.OPENAI_API_KEY;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const stabilityApiKey = process.env.STABILITY_AI_API_KEY;
+    
     console.log('[DEBUG] API Key validation:', {
-      exists: !!apiKey,
-      length: apiKey?.length || 0,
-      startsWithSk: apiKey?.startsWith('sk-') || false,
-      prefix: apiKey?.substring(0, 7) || 'undefined'
+      openai: {
+        exists: !!openaiApiKey,
+        length: openaiApiKey?.length || 0,
+        startsWithSk: openaiApiKey?.startsWith('sk-') || false,
+        prefix: openaiApiKey?.substring(0, 7) || 'undefined'
+      },
+      stability: {
+        exists: !!stabilityApiKey,
+        length: stabilityApiKey?.length || 0,
+        startsWithSk: stabilityApiKey?.startsWith('sk-') || false,
+        prefix: stabilityApiKey?.substring(0, 7) || 'undefined'
+      }
     });
 
-    if (!apiKey) {
+    if (!openaiApiKey) {
       console.error('[ERROR] OpenAI API key is not configured');
       return NextResponse.json(
         { 
-          error: 'AI service not configured - API key missing',
+          error: 'AI service not configured - OpenAI API key missing',
           type: 'configuration_error',
           details: 'OPENAI_API_KEY environment variable is not set'
         },
@@ -397,20 +527,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!apiKey.startsWith('sk-')) {
+    if (!openaiApiKey.startsWith('sk-')) {
       console.error('[ERROR] OpenAI API key format is invalid:', {
-        actualPrefix: apiKey.substring(0, 7),
+        actualPrefix: openaiApiKey.substring(0, 7),
         expectedPrefix: 'sk-'
       });
       return NextResponse.json(
         { 
-          error: 'AI service not configured - invalid API key format',
+          error: 'AI service not configured - invalid OpenAI API key format',
           type: 'configuration_error',
           details: 'OpenAI API key must start with "sk-"'
         },
         { status: 503 }
       );
     }
+
+    // Note: Stability AI API key validation is handled within the image generation function
 
     // Parse and validate request body
     const body = await request.json();
@@ -639,7 +771,7 @@ export async function POST(request: NextRequest) {
 
     // Generate images for exercises if requested
     if (workoutRequest.generateImages) {
-      console.log('[DEBUG] Starting DALL-E 3 image generation for exercises...');
+      console.log('[DEBUG] Starting Stable Diffusion image generation for exercises...');
       
       // Generate images in parallel for better performance with individual error handling
       const imagePromises = aiResponse.exercises.map(async (exercise, index) => {
@@ -662,7 +794,7 @@ export async function POST(request: NextRequest) {
       try {
         await Promise.allSettled(imagePromises); // Use allSettled to handle individual failures gracefully
         const imagesGenerated = aiResponse.exercises.filter(ex => ex.imageUrl).length;
-        console.log(`[DEBUG] Image generation completed: ${imagesGenerated}/${aiResponse.exercises.length} images generated successfully`);
+        console.log(`[DEBUG] Stable Diffusion image generation completed: ${imagesGenerated}/${aiResponse.exercises.length} images generated successfully`);
       } catch (error) {
         console.error('[ERROR] Unexpected error during image generation batch:', error);
         // Continue with workout generation even if all images fail
@@ -825,7 +957,9 @@ export async function GET() {
     { 
       message: 'Workout generation API is running',
       endpoint: 'POST /api/generate-workout',
-      rateLimit: `${RATE_LIMIT} requests per hour`
+      rateLimit: `${RATE_LIMIT} requests per hour`,
+      imageGeneration: 'Stable Diffusion 3.5 Medium',
+      textGeneration: 'OpenAI GPT-4'
     }
   );
 }
