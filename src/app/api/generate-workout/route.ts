@@ -150,9 +150,12 @@ function translateExerciseName(japaneseExerciseName: string): string {
     
     // 脚系
     'スクワット': 'squat',
+    'ボディウェイトスクワット': 'bodyweight squat',
     'ランジ': 'lunge',
     'カーフレイズ': 'calf raise',
+    'スタンディングカーフレイズ': 'standing calf raise',
     'ヒップブリッジ': 'hip bridge',
+    'グルートブリッジ': 'glute bridge',
     'レッグプレス': 'leg press',
     'デッドリフト': 'deadlift',
     
