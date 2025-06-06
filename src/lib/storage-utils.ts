@@ -84,7 +84,9 @@ export class SafeStorage {
 
     // Strip image data if requested and value is a WorkoutMenu
     if (stripImages && typeof value === 'object' && value !== null && 'exercises' in value) {
-      dataToStore = this.stripImageData(value as WorkoutMenu) as T;
+      // Only proceed if T appears to be WorkoutMenu-compatible
+      const workoutMenu = value as WorkoutMenu;
+      dataToStore = this.stripImageData(workoutMenu) as unknown as T;
     }
 
     const serialized = JSON.stringify(dataToStore);

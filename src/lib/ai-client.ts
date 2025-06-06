@@ -336,7 +336,7 @@ export class AIClient {
     // Generic fallback
     return {
       name: 'AIGenerationError',
-      type: errorObj?.type || 'unknown',
+      type: 'unknown',
       message: errorObj?.message || '予期しないエラーが発生しました。再試行してください。'
     };
   }

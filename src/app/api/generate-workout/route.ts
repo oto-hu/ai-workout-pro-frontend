@@ -187,7 +187,7 @@ function translateExerciseName(japaneseExerciseName: string): string {
     'プルアップ': 'pull up',
     'ラットプルダウン': 'lat pulldown',
     'バックエクステンション': 'back extension',
-'デッドリフト_duplicate': 'deadlift',
+    'デッドリフト': 'deadlift',
     'ローイング': 'rowing',
     
     // 肩系
@@ -221,7 +221,6 @@ function translateExerciseName(japaneseExerciseName: string): string {
     'ブリッジエクササイズ': 'bridge exercise',
     'シングルレッグブリッジ': 'single leg bridge',
     'レッグプレス': 'leg press',
-'デッドリフト_duplicate': 'deadlift',
     
     // 全身系
     'バーピー': 'burpee',

@@ -50,6 +50,7 @@ export interface UserPreferences {
   goals: string[];
   injuries?: string[];
   limitations?: string[];
+  [key: string]: unknown; // Index signature for storage compatibility
 }
 
 export interface WorkoutRequest {
@@ -88,7 +89,7 @@ export interface AIWorkoutResponse {
 
 export interface AIGenerationError {
   name: string;
-  type: 'rate_limit' | 'api_error' | 'network_error' | 'validation_error' | 'unknown';
+  type: 'rate_limit' | 'api_error' | 'network_error' | 'validation_error' | 'client_error' | 'timeout_error' | 'configuration_error' | 'unknown';
   message: string;
   retryAfter?: number;
 }
