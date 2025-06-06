@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { WorkoutRequest, AIWorkoutResponse } from '@/types/workout';
+import { storageService } from '@/lib/storage-service';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -321,14 +322,42 @@ async function generateExerciseImageWithStableDiffusion(exerciseName: string, ta
       return null;
     }
 
-    // Get the image as blob and convert to base64 data URL
+    // Get the image as blob and upload to Firebase Storage
     const imageBlob = await response.blob();
-    const arrayBuffer = await imageBlob.arrayBuffer();
-    const base64String = Buffer.from(arrayBuffer).toString('base64');
-    const dataUrl = `data:image/png;base64,${base64String}`;
+    
+    console.log('[DEBUG] Stable Diffusion image generated, uploading to Firebase Storage...', {
+      exerciseName,
+      blobSize: imageBlob.size,
+      blobType: imageBlob.type
+    });
 
-    console.log('[DEBUG] Stable Diffusion image generated successfully for:', exerciseName);
-    return dataUrl;
+    // Upload to Firebase Storage and get persistent URL
+    const uploadResult = await storageService.uploadExerciseImage(
+      imageBlob,
+      exerciseName,
+      undefined // No user ID for now, using public storage
+    );
+
+    if (uploadResult.success) {
+      console.log('[DEBUG] Image successfully uploaded to Firebase Storage:', {
+        exerciseName,
+        url: uploadResult.url.substring(0, 100) + '...'
+      });
+      return uploadResult.url;
+    } else {
+      console.error('[ERROR] Firebase Storage upload failed:', {
+        exerciseName,
+        error: uploadResult.error
+      });
+      
+      // Fallback: return base64 as temporary solution
+      const arrayBuffer = await imageBlob.arrayBuffer();
+      const base64String = Buffer.from(arrayBuffer).toString('base64');
+      const dataUrl = `data:image/png;base64,${base64String}`;
+      
+      console.log('[WARN] Using base64 fallback for:', exerciseName);
+      return dataUrl;
+    }
 
   } catch (error: unknown) {
     const errorObj = error as any;
@@ -367,12 +396,26 @@ async function generateExerciseImageWithStableDiffusion(exerciseName: string, ta
 
         if (retryResponse.ok) {
           const retryImageBlob = await retryResponse.blob();
-          const retryArrayBuffer = await retryImageBlob.arrayBuffer();
-          const retryBase64String = Buffer.from(retryArrayBuffer).toString('base64');
-          const retryDataUrl = `data:image/png;base64,${retryBase64String}`;
           
-          console.log('[DEBUG] Alternative exercise image generated successfully:', alternative);
-          return retryDataUrl;
+          // Try to upload alternative exercise image to Firebase Storage
+          const retryUploadResult = await storageService.uploadExerciseImage(
+            retryImageBlob,
+            alternative,
+            undefined
+          );
+
+          if (retryUploadResult.success) {
+            console.log('[DEBUG] Alternative exercise image uploaded to Firebase Storage:', alternative);
+            return retryUploadResult.url;
+          } else {
+            // Fallback to base64 for alternative exercise
+            const retryArrayBuffer = await retryImageBlob.arrayBuffer();
+            const retryBase64String = Buffer.from(retryArrayBuffer).toString('base64');
+            const retryDataUrl = `data:image/png;base64,${retryBase64String}`;
+            
+            console.log('[WARN] Using base64 fallback for alternative exercise:', alternative);
+            return retryDataUrl;
+          }
         }
       } catch (retryError) {
         console.error('[ERROR] Alternative exercise also failed:', alternative, retryError);

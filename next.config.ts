@@ -9,7 +9,12 @@ const nextConfig: NextConfig = {
     return config
   },
   images: {
-    domains: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com'],
+    domains: [
+      'lh3.googleusercontent.com', 
+      'avatars.githubusercontent.com',
+      'firebasestorage.googleapis.com',
+      'storage.googleapis.com'
+    ],
     unoptimized: true
   },
   trailingSlash: true,
