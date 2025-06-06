@@ -277,7 +277,7 @@ function getStableDiffusionPrompt(exerciseName: string): string {
   return `athletic person demonstrating ${englishExerciseName} exercise with proper form, fitness training demonstration, modern gym setting, professional workout guide, clean lighting, high quality, photorealistic, detailed anatomy`;
 }
 
-async function generateExerciseImageWithStableDiffusion(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
+async function generateExerciseImageWithStableDiffusion(exerciseName: string): Promise<string | null> {
   try {
     // Validate API key
     if (!STABILITY_API_KEY) {
@@ -360,7 +360,7 @@ async function generateExerciseImageWithStableDiffusion(exerciseName: string, ta
     }
 
   } catch (error: unknown) {
-    const errorObj = error as any;
+    const errorObj = error as { code?: string; status?: number; message?: string; name?: string };
     console.error('[ERROR] Stable Diffusion image generation failed for', exerciseName, ':', {
       error,
       message: (error as Error)?.message,
@@ -427,7 +427,7 @@ async function generateExerciseImageWithStableDiffusion(exerciseName: string, ta
 }
 
 // Legacy DALL-E 3 function for fallback (if needed)
-async function generateExerciseImageWithDallE(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
+async function generateExerciseImageWithDallE(exerciseName: string): Promise<string | null> {
   try {
     // Check if this is a problematic exercise and try alternative first
     let currentExerciseName = exerciseName;
@@ -465,7 +465,7 @@ async function generateExerciseImageWithDallE(exerciseName: string, targetMuscle
       return null;
     }
   } catch (error: unknown) {
-    const errorObj = error as any;
+    const errorObj = error as { code?: string; status?: number; type?: string; message?: string; name?: string };
     console.error('[ERROR] DALL-E 3 image generation failed for', exerciseName, ':', {
       error,
       message: (error as Error)?.message,
@@ -510,9 +510,9 @@ async function generateExerciseImageWithDallE(exerciseName: string, targetMuscle
 }
 
 // Main image generation function that uses Stable Diffusion
-async function generateExerciseImage(exerciseName: string, targetMuscles: string[]): Promise<string | null> {
+async function generateExerciseImage(exerciseName: string): Promise<string | null> {
   // Use Stable Diffusion 3.5 Medium as primary method
-  return await generateExerciseImageWithStableDiffusion(exerciseName, targetMuscles);
+  return await generateExerciseImageWithStableDiffusion(exerciseName);
 }
 
 export async function POST(request: NextRequest) {
@@ -819,7 +819,7 @@ export async function POST(request: NextRequest) {
       // Generate images in parallel for better performance with individual error handling
       const imagePromises = aiResponse.exercises.map(async (exercise, index) => {
         try {
-          const imageUrl = await generateExerciseImage(exercise.name, exercise.targetMuscles);
+          const imageUrl = await generateExerciseImage(exercise.name);
           if (imageUrl) {
             exercise.imageUrl = imageUrl;
             console.log(`[DEBUG] Image generated for exercise ${index + 1}/${aiResponse.exercises.length}: ${exercise.name}`);

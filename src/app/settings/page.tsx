@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { UserPreferences } from '@/types/workout';
 import { storageUtils } from '@/lib/storage-utils';
 
-const STORAGE_KEY = 'aiWorkoutPro_userPreferences';
-
 const defaultPreferences: UserPreferences = {
   fitnessLevel: 'beginner',
   preferredDuration: 30,

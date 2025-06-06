@@ -207,7 +207,7 @@ export default function WorkoutPage() {
         }
       } else if (typeof error === 'object' && error !== null) {
         // Handle other object-based errors
-        const errorObj = error as any;
+        const errorObj = error as { type?: string; message?: string };
         if (errorObj.type) {
           errorDetails = `Type: ${errorObj.type}, Message: ${errorObj.message || 'Unknown'}`;
           errorMessage = errorObj.message || errorMessage;

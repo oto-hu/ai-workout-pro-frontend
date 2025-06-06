@@ -1,4 +1,4 @@
-import { AIWorkoutResponse, WorkoutRequest, AIGenerationError } from '@/types/workout';
+import { AIWorkoutResponse, WorkoutRequest, AIGenerationError, AIExercise } from '@/types/workout';
 
 // Rate limiting and caching
 const API_CACHE = new Map<string, { data: AIWorkoutResponse; timestamp: number }>();
@@ -145,7 +145,7 @@ export class AIClient {
         let errorData;
         try {
           errorData = await response.json();
-        } catch (parseError) {
+        } catch {
           // If we can't parse the error response, create a generic error
           throw {
             status: response.status,
@@ -208,31 +208,33 @@ export class AIClient {
 
     // Validate exercise fields with more lenient requirements
     for (const exercise of responseObj.exercises) {
-      const requiredExerciseFields = ['name', 'sets', 'reps', 'restTime', 'targetMuscles', 'difficulty', 'instructions', 'tips'];
+      const exerciseObj = exercise as Partial<AIExercise>;
+      const requiredExerciseFields = ['name', 'sets', 'reps', 'restTime', 'targetMuscles', 'difficulty', 'instructions', 'tips'] as const;
+      
       for (const field of requiredExerciseFields) {
-        if (!(field in exercise)) {
+        if (!(field in exerciseObj)) {
           // Set reasonable defaults for missing exercise fields
           switch (field) {
             case 'sets':
-              (exercise as any)[field] = 3;
+              exerciseObj[field] = 3;
               break;
             case 'reps':
-              (exercise as any)[field] = '10回';
+              exerciseObj[field] = '10回';
               break;
             case 'restTime':
-              (exercise as any)[field] = '30秒';
+              exerciseObj[field] = '30秒';
               break;
             case 'targetMuscles':
-              (exercise as any)[field] = ['全身'];
+              exerciseObj[field] = ['全身'];
               break;
             case 'difficulty':
-              (exercise as any)[field] = '★★☆';
+              exerciseObj[field] = '★★☆';
               break;
             case 'instructions':
-              (exercise as any)[field] = ['正しいフォームで行ってください'];
+              exerciseObj[field] = ['正しいフォームで行ってください'];
               break;
             case 'tips':
-              (exercise as any)[field] = 'ゆっくりとした動作で効果を高めましょう';
+              exerciseObj[field] = 'ゆっくりとした動作で効果を高めましょう';
               break;
             default:
               throw new Error(`Missing required exercise field: ${field}`);
@@ -240,8 +242,8 @@ export class AIClient {
         }
       }
       // Add safetyNotes if missing
-      if (!('safetyNotes' in exercise)) {
-        (exercise as any).safetyNotes = '無理をせず、体調に合わせて調整してください';
+      if (!('safetyNotes' in exerciseObj)) {
+        exerciseObj.safetyNotes = '無理をせず、体調に合わせて調整してください';
       }
     }
   }

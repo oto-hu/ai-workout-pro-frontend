@@ -326,7 +326,7 @@ export class WorkoutGenerator {
    */
   private logError(error: unknown, request: WorkoutRequest): void {
     // Enhanced error extraction
-    let errorDetails: any = {};
+    let errorDetails: Record<string, unknown> = {};
     
     if (error instanceof Error) {
       errorDetails = {
@@ -336,9 +336,10 @@ export class WorkoutGenerator {
       };
     } else if (typeof error === 'object' && error !== null) {
       // Handle object errors (like API response errors)
+      const errorObj = error as Record<string, unknown>;
       errorDetails = {
-        ...error,
-        message: (error as any).message || 'Unknown error',
+        ...errorObj,
+        message: errorObj.message || 'Unknown error',
         toString: String(error)
       };
     } else {
@@ -353,7 +354,7 @@ export class WorkoutGenerator {
       timestamp: new Date().toISOString(),
       error: {
         message: errorDetails.message || 'Unknown error occurred',
-        type: errorDetails.type || (error as { type?: string }).type || 'unknown',
+        type: errorDetails.type || (error as { type?: string })?.type || 'unknown',
         name: errorDetails.name || 'UnknownError',
         stack: errorDetails.stack,
         details: errorDetails,
@@ -377,7 +378,7 @@ export class WorkoutGenerator {
     
     // Store locally for debugging (optional) with safe storage
     if (typeof window !== 'undefined') {
-      const existingResult = SafeStorage.getItem<any[]>('aiWorkoutPro_errors', { defaultValue: [] });
+      const existingResult = SafeStorage.getItem<Record<string, unknown>[]>('aiWorkoutPro_errors', { defaultValue: [] });
       const errors = existingResult.success ? existingResult.data || [] : [];
       
       errors.push(errorLog);
@@ -399,7 +400,7 @@ export class WorkoutGenerator {
   getErrorStats(): { totalErrors: number; recentErrors: number; errorTypes: Record<string, number> } | null {
     if (typeof window === 'undefined') return null;
     
-    const result = SafeStorage.getItem<any[]>('aiWorkoutPro_errors', { defaultValue: [] });
+    const result = SafeStorage.getItem<Record<string, unknown>[]>('aiWorkoutPro_errors', { defaultValue: [] });
     if (!result.success) return null;
     
     const errors = result.data || [];
