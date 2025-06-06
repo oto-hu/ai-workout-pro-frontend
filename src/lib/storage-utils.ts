@@ -113,10 +113,11 @@ export class SafeStorage {
       try {
         storage.setItem(key, serialized);
         return { success: true, data: dataToStore };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const storageError = error as { name?: string; code?: number; message?: string };
         console.warn(`Storage attempt ${attempt + 1} failed:`, error);
 
-        if (error.name === 'QuotaExceededError' || error.code === 22) {
+        if (storageError.name === 'QuotaExceededError' || storageError.code === 22) {
           // Try clearing some space
           this.clearOldData(storage);
           
@@ -136,7 +137,7 @@ export class SafeStorage {
         if (attempt === maxRetries - 1) {
           return { 
             success: false, 
-            error: `Storage failed after ${maxRetries} attempts: ${error.message}` 
+            error: `Storage failed after ${maxRetries} attempts: ${storageError.message}` 
           };
         }
       }
@@ -234,7 +235,7 @@ export class SafeStorage {
     try {
       const getUsage = (storage: Storage) => {
         let used = 0;
-        for (let key in storage) {
+        for (const key in storage) {
           if (storage.hasOwnProperty(key)) {
             used += storage[key].length + key.length;
           }
@@ -317,11 +318,11 @@ export const storageUtils = {
     });
   },
 
-  saveUserPreferences: (prefs: any): StorageResult<any> => {
+  saveUserPreferences: (prefs: Record<string, unknown>): StorageResult<Record<string, unknown>> => {
     return SafeStorage.setItem('aiWorkoutPro_userPreferences', prefs);
   },
 
-  loadUserPreferences: (): StorageResult<any> => {
+  loadUserPreferences: (): StorageResult<Record<string, unknown>> => {
     return SafeStorage.getItem('aiWorkoutPro_userPreferences');
   }
 };

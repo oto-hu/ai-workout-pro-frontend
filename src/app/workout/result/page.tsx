@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { WorkoutMenu } from '@/types/workout';
 import { workoutGenerator } from '@/lib/workout-generator';
@@ -278,13 +279,14 @@ export default function WorkoutResultPage() {
                   <div className="lg:w-1/3">
                     <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden">
                       {exercise.imageUrl ? (
-                        <img
+                        <Image
                           src={exercise.imageUrl}
                           alt={`${exercise.name}のフォーム図解`}
+                          width={400}
+                          height={300}
                           className="w-full h-full object-cover rounded-xl"
-                          loading="lazy"
                           onError={(e) => {
-                            // Show placeholder if DALL-E image fails to load
+                            // Show placeholder if image fails to load
                             e.currentTarget.style.display = 'none';
                             const placeholder = e.currentTarget.parentElement?.querySelector('.exercise-placeholder');
                             if (placeholder) {
