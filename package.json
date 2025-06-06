@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "test": "jest --passWithNoTests --watchAll=false"
+    "test": "jest --passWithNoTests --watchAll=false",
+    "vercel-build": "npm run type-check && next build",
+    "preview": "next build && next start",
+    "clean": "rm -rf .next && rm -rf out"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
