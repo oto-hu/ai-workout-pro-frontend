@@ -66,7 +66,7 @@ export default function WorkoutPage() {
   // Check if user has settings configured
   useEffect(() => {
     const result = storageUtils.loadUserPreferences();
-    setHasUserSettings(result.success && result.data);
+    setHasUserSettings(result.success && !!result.data);
   }, []);
 
   const toggleBodyPart = (partId: string) => {

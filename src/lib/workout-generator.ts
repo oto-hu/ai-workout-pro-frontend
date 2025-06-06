@@ -29,7 +29,7 @@ export class WorkoutGenerator {
     if (typeof window === 'undefined') return null;
     
     const result = SafeStorage.getItem<UserPreferences>(STORAGE_KEY);
-    return result.success ? result.data : null;
+    return result.success ? (result.data || null) : null;
   }
 
   /**
@@ -406,14 +406,14 @@ export class WorkoutGenerator {
     const errors = result.data || [];
     return {
       totalErrors: errors.length,
-      recentErrors: errors.filter((e: { timestamp: string }) => 
+      recentErrors: (errors as Array<{ timestamp: string }>).filter((e: { timestamp: string }) => 
         Date.now() - new Date(e.timestamp).getTime() < 24 * 60 * 60 * 1000
       ).length,
-      errorTypes: errors.reduce((acc: Record<string, number>, error: { error: { type?: string } }) => {
+      errorTypes: (errors as Array<{ error: { type?: string } }>).reduce((acc: Record<string, number>, error: { error: { type?: string } }) => {
         const type = error.error.type || 'unknown';
         acc[type] = (acc[type] || 0) + 1;
         return acc;
-      }, {})
+      }, {} as Record<string, number>)
     };
   }
 }
