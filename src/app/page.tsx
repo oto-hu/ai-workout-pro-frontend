@@ -1,7 +1,9 @@
-'use client';
-
 import Link from 'next/link';
-import CreditInfo from '@/components/CreditInfo';
+import dynamic from 'next/dynamic';
+
+const CreditInfo = dynamic(() => import('@/components/CreditInfo'), {
+  ssr: false
+});
 
 export default function Home() {
   return (
