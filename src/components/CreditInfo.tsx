@@ -9,9 +9,9 @@ export default function CreditInfo() {
   const [dailyCount, setDailyCount] = useState<number>(0);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.email) return;
 
-    const creditRef = doc(db, 'users', session.user.id, 'credits', 'info');
+    const creditRef = doc(db, 'users', session.user.email, 'credits', 'info');
     const unsubscribe = onSnapshot(creditRef, (doc) => {
       if (doc.exists()) {
         const data = doc.data();

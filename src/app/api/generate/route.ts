@@ -5,7 +5,7 @@ import { CreditService } from '@/services/creditService';
 export async function POST(req: Request) {
   try {
     const session = await getServerSession();
-    const userId = session?.user?.id || null;
+    const userId = session?.user?.email || null;
 
     // クレジットチェック
     const canGenerate = await CreditService.canGenerateImage(userId);
