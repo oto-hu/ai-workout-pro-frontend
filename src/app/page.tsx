@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import ClientCreditInfo from '@/components/ClientCreditInfo';
 
 export default function Home() {
   return (
@@ -37,9 +36,6 @@ export default function Home() {
                   >
                     デモを見る
                   </Link>
-                </div>
-                <div className="mt-6">
-                  <ClientCreditInfo />
                 </div>
               </div>
 

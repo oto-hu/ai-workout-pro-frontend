@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { BodyPart, WorkoutGeneration } from '@/types/workout';
 import { workoutGenerator } from '@/lib/workout-generator';
 import { storageUtils } from '@/lib/storage-utils';
-import CreditInfo from '@/components/CreditInfo';
 
 const bodyParts: BodyPart[] = [
   {
@@ -230,9 +229,6 @@ export default function WorkoutPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-4">
-        <CreditInfo />
-      </div>
       <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50">
         
         <main className="py-12 px-4 sm:px-6 lg:px-8">
