@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only access their own user document
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // クレジット情報
+      match /credits/{creditId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // 生成履歴
+      match /generations/{generationId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Users can only access their own profile
+    match /userProfiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can only access their own workout sessions
+    match /workoutSessions/{sessionId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Users can only access their own favorite workouts
+    match /favoriteWorkouts/{favoriteId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+  }
+}
