@@ -479,6 +479,8 @@ export default function WorkoutPage() {
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
                     AIがエクササイズの正しいフォームを示すイラストを生成します。画像生成は追加時間がかかります。
+                    <br />
+                    生成された画像と運動が一致しない可能性もあります。
                   </p>
                 </div>
               </div>
