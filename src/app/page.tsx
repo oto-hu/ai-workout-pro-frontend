@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import ClientCreditInfo from '@/components/ClientCreditInfo';
 
 const CreditInfo = dynamic(() => import('@/components/CreditInfo'), {
   ssr: false
@@ -43,7 +44,7 @@ export default function Home() {
                   </Link>
                 </div>
                 <div className="mt-6">
-                  <CreditInfo />
+                  <ClientCreditInfo />
                 </div>
               </div>
 
